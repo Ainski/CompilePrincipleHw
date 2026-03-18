@@ -1,1 +1,21 @@
-digit 123
+TYPE	CATEGORY	VALUE
+declarator	Int	int
+identifier	Identifier	main
+separator	LParen	(
+separator	RParen	)
+separator	LBrace	{
+declarator	Int	int
+operator	Star	*
+identifier	Identifier	a
+operator	Assign	=
+constant	IntegerConst	0
+delimiter	Delimiter	;
+declarator	Char	char
+identifier	Identifier	c
+operator	Assign	=
+constant	CharacterConst	u'c'
+delimiter	Delimiter	;
+keyword	Return	return
+constant	IntegerConst	0
+delimiter	Delimiter	;
+separator	RBrace	}

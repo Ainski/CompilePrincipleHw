@@ -6,6 +6,8 @@
 
 ```c++
 while (i >=j ) i-- ;
+int a= 0;
+int*(int,int) p
 ```
 
 | type       | category   | value |
@@ -88,7 +90,7 @@ UBVA 			: '__builtin_va_arg'
 UBO				: '__builtin_offsetof'
 // 扩展关键字 (条件支持)
 Asm             : 'asm' ;              // 常见扩展
-Fortra          : 'fortran' ;          // 扩展，罕见
+Fortran          : 'fortran' ;          // 扩展，罕见
 UAsm : '__asm'
 UAsmU : '__asm__'
 ```
@@ -128,7 +130,6 @@ LBrack           : '[' ;
 RBrack           : ']' ;
 LBrace           : '{' ;
 RBrace           : '}' ;
-Semi             : ';' ;
 Comma            : ',' ;
 Dot              : '.' ;
 Pos              : '+' ;   // 正号/加号
@@ -160,10 +161,10 @@ UAlignof        : '_Alignof'
 只有一种
 
 ```
-delimiter ;
+Delimiter ;
 ```
 
-## 2.4 Constant
+## 2.4 constant
 
 常量只考虑了单个的语法单元，例如1，"123"，4.5 。`1+1` 在词法分析器当中不是常量。 因此，常量只有如下四种。
 
@@ -174,7 +175,30 @@ IntConst
 FloatConst
 ```
 
-## 2.5 Identifier
+需要注意的是，如果StringConst 当中出现了换行符，对于程序的输出有很大的影响，因此我提供了转移序列，转义序列如下。采取如下方式的原因是，如果原字符串当中有`\r` 的话，程序输入字符串当中的换行符，和程序当中的字符串将会无法区分。例如如下程序输入字符串
+
+```c
+"123\r\\
+    ^^  ^
+    1   2
+123"
+```
+
+为了区分`1` 和 `2`处的换行符，特别做了下面的转义。
+
+| 转义前（C语言方式表示） | 转义后 |
+| ----------------------- | ------ |
+| $                       | $$     |
+| (空格)                  | $_     |
+| \r                      | $r     |
+| \n                      | $n     |
+| \t                      | $t     |
+| \0                      | $0     |
+| 不可见字符              | $.     |
+
+
+
+## 2.5 identifier
 
 只有一种
 
