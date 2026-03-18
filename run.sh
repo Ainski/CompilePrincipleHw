@@ -39,6 +39,7 @@ clean() {
 build() {
     # 获取当前flex版本（如果未安装，变量为空）
     flex_version=$(flex --version 2>/dev/null | awk '{print $2}')
+    gcc_version =$(gcc --version 3>/dev/null | head -n 1 | awk '{print $3}')
 
     # 检查并安装flex 2.6.4
     if [ "$flex_version" = "2.6.4" ]; then
@@ -46,6 +47,14 @@ build() {
     else
         echo "$(date +"%Y-%m-%d %H:%M:%S [%s]") : flex $flex_version is not installed, installing flex 2.6.4..."
         apt install -y flex
+    fi
+
+    # 检查gcc版本
+    if [ -n "$gcc_version" ]; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S [%s]") : gcc version $gcc_version is installed"
+    else
+        echo "$(date +"%Y-%m-%d %H:%M:%S [%s]") : gcc is not installed, installing gcc..."
+        apt install -y build-essential
     fi
 
     # 进入flex目录并执行编译+运行
