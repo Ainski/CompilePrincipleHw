@@ -39,8 +39,8 @@ clean() {
 build() {
     # 获取当前flex版本（如果未安装，变量为空）
     flex_version=$(flex --version 2>/dev/null | awk '{print $2}')
-    gcc_version =$(gcc --version 3>/dev/null | head -n 1 | awk '{print $3}')
-
+    gcc_version=$(gcc --version 2>/dev/null | head -n 1 | awk '{print $3}')
+    
     # 检查并安装flex 2.6.4
     if [ "$flex_version" = "2.6.4" ]; then
         echo "$(date +"%Y-%m-%d %H:%M:%S [%s]") : flex 2.6.4 is already installed"
