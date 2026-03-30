@@ -468,3 +468,5 @@ FodyWeavers.xsd
 *.msm
 *.msp
 *.pdf
+
+rust-test/
