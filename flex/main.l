@@ -63,7 +63,7 @@ BinaryConstant                  0[bB]({BinaryDigit}+|{BinaryDigit}({BinaryDigit}
 OctalConstant                   0{OctalDigit}+
 HexadecimalConstant             0[xX]({HexadecimalDigit}+|{HexadecimalDigit}({HexadecimalDigit}\_)*{HexadecimalDigit})
 DecimalConstant                 ({NoneZeroDigit}{DIGIT}*|{NoneZeroDigit}({DIGIT}|\_)*{DIGIT}|0)
-IntegerConstant                 ({DecimalConstant}{IntegerSuffix}?|{OctalConstant}{IntegerSuffix}?|{HexadecimalConstant}{IntegerSuffix}?|{BinaryConstant})
+IntegerConstant                 ({DecimalConstant}{IntegerSuffix}?|{HexadecimalConstant}{IntegerSuffix}?|{BinaryConstant})
 DigitSequence                   {DIGIT}+
 FractionalConstant              ({DigitSequence}?\.{DigitSequence}|{DigitSequence}\.)
 ExponentPart                    [eE][+-]?{DigitSequence}
@@ -80,8 +80,8 @@ BlockComment                     \/\*([^*]|\*+[^*/])*\*+\/
 %%
 {LineComment}           { char* res=rebuild_string(yytext); printf("comment\tLineComment\t%s\n", res); free(res); }
 {BlockComment}          { char* res=rebuild_string(yytext); printf("comment\tBlockComment\t%s\n", res); free(res); }
-
-i32                     { printf("keyword\tI32\t%s\n", yytext); }
+{IntegerConstant}       { printf("constant\tIntegerConstant\t%s\n", yytext); }
+i32                     { printf("declerator\tI32\t%s\n", yytext); }
 let                     { printf("keyword\tLet\t%s\n", yytext); }
 if                      { printf("keyword\tIf\t%s\n", yytext); }
 else           { printf("keyword\tElse\t%s\n", yytext); }
