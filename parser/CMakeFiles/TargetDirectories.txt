@@ -1,0 +1,3 @@
+/mnt/e/Homeworks/CompilePrinciple/CompilePrincipleHw/parser/CMakeFiles/parser.dir
+/mnt/e/Homeworks/CompilePrinciple/CompilePrincipleHw/parser/CMakeFiles/edit_cache.dir
+/mnt/e/Homeworks/CompilePrinciple/CompilePrincipleHw/parser/CMakeFiles/rebuild_cache.dir

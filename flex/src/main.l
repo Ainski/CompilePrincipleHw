@@ -1,6 +1,24 @@
 %{
 #include<stdio.h>
 #include<ctype.h>
+#include<string.h>
+#include<stdlib.h>
+#include"../include/config.h"
+#include"../include/TokenStream.h"
+#include "../include/lexer.h"
+
+#define YY_DECL int yylex()
+int yylex();
+void yyerror(const char * msg);
+std::ifstream file;
+#undef YY_INPUT
+#define YY_INPUT(buf,result,max_size)\
+    if (!file.eof() && file.readsome(buf, max_size) > 0) {\
+        result = file.gcount();\
+    } else {\
+        result = 0;\
+    }
+
 char* rebuild_string(char* str) {
     int size=strlen(str);
     int i=0;
@@ -36,6 +54,8 @@ char* rebuild_string(char* str) {
 }
 
 %}
+
+%option noyywrap
 DIGIT                           [0-9]
 NoneZeroDigit                   [1-9]
 OctalDigit                      [0-7]
@@ -135,4 +155,7 @@ int main()
     printf("TYPE \tCATEGORY \tVALUE \n");
     yylex();
     return 0;
+}
+void yyerror(const char * msg) {
+    std::cerr << "Error: " << msg << std::endl;
 }
