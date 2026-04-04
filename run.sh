@@ -7,7 +7,10 @@ flex_file="main.l"               # flex源文件
 flex_output="lex.yy.c"           # flex生成的C文件
 flex_input_file="input.rs"        # 测试输入文件
 flex_output_executable="clex"     # 最终可执行文件
-test_output="output.tsv"          # 测试输出文件
+test_output="output.tsv"          # 词法分析输出文件
+parser_src="../parser/parser.cpp" # 语法分析器源文件
+parser_bin="../parser/parser"     # 语法分析器可执行文件
+parse_output="parse_tree.txt"     # 语法分析输出文件
 
 log(){
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] : $1 "
@@ -86,7 +89,7 @@ build() {
 
         # 3. 执行可执行文件，并重定向输入
         if [ -f "$flex_output_executable" ]; then
-            log "执行程序，输入文件: $flex_input_file"
+            log "执行词法分析，输入文件: $flex_input_file"
             ./"$flex_output_executable" < "$flex_input_file" > "$test_output"
         else
             log "错误：可执行文件 $flex_output_executable 未生成"
@@ -94,6 +97,32 @@ build() {
         fi
 
         cd ..
+
+    # 4. 编译语法分析器
+    if [ -f "parser/parser.cpp" ]; then
+        log "编译语法分析器: $parser_bin"
+        /d/msys2/msys2/ucrt64/bin/g++ -std=c++17 -o "$parser_bin" "parser/parser.cpp"
+        if [ $? -ne 0 ]; then
+            log "错误：语法分析器编译失败"
+            exit 1
+        fi
+    else
+        log "警告：未找到 parser/parser.cpp，跳过语法分析"
+        exit 0
+    fi
+
+    # 5. 运行语法分析器
+    if [ -f "$parser_bin" ]; then
+        log "运行语法分析器，输入: flex/$test_output"
+        "$parser_bin" "flex/$test_output" > "flex/$parse_output"
+        if [ $? -eq 0 ]; then
+            log "语法分析成功，输出: flex/$parse_output"
+        else
+            log "错误：语法分析失败"
+            cat "flex/$parse_output" >&2
+            exit 1
+        fi
+    fi
     else
         log "错误：flex目录不存在"
         exit 1
