@@ -1,4 +1,5 @@
 #ifndef LEXER_H
 #define LEXER_H
-TokenStream ReadLexer(const string& filepath);
+// yylex 接口定义
+TokenStream lex(const string& filepath);
 #endif

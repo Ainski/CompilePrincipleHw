@@ -3,18 +3,21 @@
 #include<ctype.h>
 #include<string.h>
 #include<stdlib.h>
-#include"../include/config.h"
 #include"../include/TokenStream.h"
-#include "../include/lexer.h"
+#include "../include/Token.h"
 
 #define YY_DECL int yylex()
+
+// 列号计数器
+static int yycolno = 1;
+
 int yylex();
 void yyerror(const char * msg);
 
 /*=====================================
  * 全局变量
  * file ：输入文件流
- * token ：当前词法单元
+ * token ：当前词法单元（用于传递 Token 对象）
  */
 std::ifstream INPUT_FILESTREAM;
 Token CURRENT_TOKEN;
@@ -30,6 +33,7 @@ int POS_COUNT = 1;
     }
 %}
 
+%option yylineno
 %option noyywrap
 DIGIT                           [0-9]
 NoneZeroDigit                   [1-9]
@@ -73,62 +77,61 @@ Identifier                      ({Chars}|\_)({Chars}|{DIGIT}|\_)*
 LineComment                      "//"(\\\n|\\\r\n|[^\r\n])*
 BlockComment                     \/\*([^*]|\*+[^*/])*\*+\/
 %%
-{LineComment}           { CURRENT_TOKEN.type="comment"; CURRENT_TOKEN.category="LineComment"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; } 
-{BlockComment}          { CURRENT_TOKEN.type="comment"; CURRENT_TOKEN.category="BlockComment"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-{IntegerConstant}       { CURRENT_TOKEN.type="constant"; CURRENT_TOKEN.category="IntegerConstant"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-i32                     { CURRENT_TOKEN.type="declerator"; CURRENT_TOKEN.category="I32"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-let                     { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="Let"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-if                      { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="If"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-else           { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="Else"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-while                   { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="While"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-return            { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="Return"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-mut                     { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="Mut"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-fn                      { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="Fn";CURRENT_TOKEN.value=yytext;CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-for                     { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="For";CURRENT_TOKEN.value=yytext;CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-in                      { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="In"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-loop                    { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="Loop"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-break                   { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="Break"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-continue                { CURRENT_TOKEN.type="keyword"; CURRENT_TOKEN.category="Continue"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
+{LineComment}           { CURRENT_TOKEN = Token(Type::COMMENT, "LineComment", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+{BlockComment}          { CURRENT_TOKEN = Token(Type::COMMENT, "BlockComment", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+{IntegerConstant}       { CURRENT_TOKEN = Token(Type::CONSTANT, "IntegerConstant", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+i32                     { CURRENT_TOKEN = Token(Type::DECLERATOR, "I32", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+let                     { CURRENT_TOKEN = Token(Type::KEYWORD, "Let", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+if                      { CURRENT_TOKEN = Token(Type::KEYWORD, "If", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+else                    { CURRENT_TOKEN = Token(Type::KEYWORD, "Else", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+while                   { CURRENT_TOKEN = Token(Type::KEYWORD, "While", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+return                  { CURRENT_TOKEN = Token(Type::KEYWORD, "Return", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+mut                     { CURRENT_TOKEN = Token(Type::KEYWORD, "Mut", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+fn                      { CURRENT_TOKEN = Token(Type::KEYWORD, "Fn", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+for                     { CURRENT_TOKEN = Token(Type::KEYWORD, "For", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+in                      { CURRENT_TOKEN = Token(Type::KEYWORD, "In", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+loop                    { CURRENT_TOKEN = Token(Type::KEYWORD, "Loop", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+break                   { CURRENT_TOKEN = Token(Type::KEYWORD, "Break", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+continue                { CURRENT_TOKEN = Token(Type::KEYWORD, "Continue", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
 
-{Identifier}            { CURRENT_TOKEN.type="identifier"; CURRENT_TOKEN.category="Identifier"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
+{Identifier}            { CURRENT_TOKEN = Token(Type::IDENTIFIER, "Identifier", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
 
-"->"                    { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="Arrow"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-".."                    { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="DotDot"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"."                     { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="Dot"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"=="                    { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="EqualEqual"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"!="                    { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="NotEqual"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-">="                    { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="GreaterEqual"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"<="                    { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="LessEqual"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-">"                     { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="Greater"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"<"                     { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="Less"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"+"                     { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="Plus"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"-"                     { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="Minus"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"*"                     { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="Star"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"/"                     { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="Slash"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"&"                     { CURRENT_TOKEN.type="operator"; CURRENT_TOKEN.category="Ampersand"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
+"->"                    { CURRENT_TOKEN = Token(Type::OPERATOR, "Arrow", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+".."                    { CURRENT_TOKEN = Token(Type::OPERATOR, "DotDot", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"."                     { CURRENT_TOKEN = Token(Type::OPERATOR, "Dot", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"=="                    { CURRENT_TOKEN = Token(Type::OPERATOR, "EqualEqual", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"!="                    { CURRENT_TOKEN = Token(Type::OPERATOR, "NotEqual", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+">="                    { CURRENT_TOKEN = Token(Type::OPERATOR, "GreaterEqual", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"<="                    { CURRENT_TOKEN = Token(Type::OPERATOR, "LessEqual", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+">"                     { CURRENT_TOKEN = Token(Type::OPERATOR, "Greater", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"<"                     { CURRENT_TOKEN = Token(Type::OPERATOR, "Less", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"+"                     { CURRENT_TOKEN = Token(Type::OPERATOR, "Plus", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"-"                     { CURRENT_TOKEN = Token(Type::OPERATOR, "Minus", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"*"                     { CURRENT_TOKEN = Token(Type::OPERATOR, "Star", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"/"                     { CURRENT_TOKEN = Token(Type::OPERATOR, "Slash", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"&"                     { CURRENT_TOKEN = Token(Type::OPERATOR, "Ampersand", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
 
-"="                     { CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="Assign"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-";"                     { CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="Semicolon"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-":"                     { CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="Colon"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-","                     { CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="Comma"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"("                     { CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="LParen"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-")"                     { CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="RParen"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"{"                     { CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="LBrace"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"}"                     {CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="RBrace"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"["                     {CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="LBracket";CURRENT_TOKEN.value=yytext;CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
-"]"                     { CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="RBracket"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
+"="                     { CURRENT_TOKEN = Token(Type::DELIMITER, "Assign", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+";"                     { CURRENT_TOKEN = Token(Type::DELIMITER, "Semicolon", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+":"                     { CURRENT_TOKEN = Token(Type::DELIMITER, "Colon", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+","                     { CURRENT_TOKEN = Token(Type::DELIMITER, "Comma", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"("                     { CURRENT_TOKEN = Token(Type::DELIMITER, "LParen", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+")"                     { CURRENT_TOKEN = Token(Type::DELIMITER, "RParen", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"{"                     { CURRENT_TOKEN = Token(Type::DELIMITER, "LBrace", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"}"                     { CURRENT_TOKEN = Token(Type::DELIMITER, "RBrace", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"["                     { CURRENT_TOKEN = Token(Type::DELIMITER, "LBracket", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
+"]"                     { CURRENT_TOKEN = Token(Type::DELIMITER, "RBracket", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
 
-"#"                     { CURRENT_TOKEN.type="delimiter"; CURRENT_TOKEN.category="End"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
+"#"                     { CURRENT_TOKEN = Token(Type::DELIMITER, "End", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
 
-[ \t\n\r]               ;
+[ \t\n\r]               { yycolno += yyleng; }
 
-.                       { CURRENT_TOKEN.type="unknown"; CURRENT_TOKEN.category="Unknown"; CURRENT_TOKEN.value=yytext; CURRENT_TOKEN.pos = POS_COUNT++; return 1; }
+.                       { CURRENT_TOKEN = Token(Type::TYPE_EOF, "Unknown", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
 
 %%
 
-TokenStream ReadLexer(const string& filepath)
+TokenStream lex(const string& filepath)
 {
-    printf("TYPE \tCATEGORY \tVALUE \n");
     INPUT_FILESTREAM.open(filepath);
     if (!INPUT_FILESTREAM.is_open()) {
         std::cerr << "Failed to open input file." << std::endl;
@@ -136,8 +139,9 @@ TokenStream ReadLexer(const string& filepath)
     }
     TokenStream ts;
     while(yylex()){
-        ts.addToken(CURRENT_TOKEN,true);
+        ts.addToken(CURRENT_TOKEN);
     }
+    INPUT_FILESTREAM.close();
     return ts;
 }
 

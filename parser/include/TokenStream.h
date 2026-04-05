@@ -15,25 +15,22 @@
 #include <cstring>
 #include <string.h>
 #include <fstream>
-#include "../include/config.h"
+#include "config.h"
+#include "Type.h"
+#include "Token.h"
 using namespace std;
-// ============================================================
-//  Token
-// ============================================================
-struct Token {
-    string type;      // keyword | operator | delimiter | constant | identifier | declerator
-    string category;  // Let | Mut | Fn | I32 | Identifier | IntegerConstant | ...
-    string value;     // raw text
-    int    pos = 0;   // index in token stream (for error messages)
-};
 
-static const Token EOF_TOKEN{ "eof", "EOF", "<eof>", -1 };
+
+
+
+
 
 
 
 class TokenStream {
     vector<Token> toks;
     int cur = 0;
+    int FILETOKEN = 0 ; 
     static string trim(const string& s);
 
 public:
@@ -47,6 +44,8 @@ public:
     bool match(const string& cat);
     bool addToken(const Token& t,bool IsPrint = false);
     void displayTokens() const;
+    void to_file(const string& filename) const;
+    void remove_comments() ;
 };
 
 char* rebuild_string(char* str);

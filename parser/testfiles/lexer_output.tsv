@@ -1,13 +1,4 @@
-delimiter	End	#	303
-02
-01
-0
-	297
-�� ..	291
-62
-52
-��试 */	2
-ent	BlockComment	/* 这是一个多行注释测试 */	2
+Type	Category	Value	Position
 keyword	Fn	fn	3
 identifier	Identifier	main	4
 delimiter	LParen	(	5
@@ -37,7 +28,6 @@ declerator	I32	i32	28
 delimiter	Assign	=	29
 constant	IntegerConstant	30	30
 delimiter	Semicolon	;	31
-comment	LineComment	// 测试 if-else	32
 keyword	If	if	33
 identifier	Identifier	x	34
 operator	Greater	>	35
@@ -70,7 +60,6 @@ delimiter	Assign	=	61
 constant	IntegerConstant	0	62
 delimiter	Semicolon	;	63
 delimiter	RBrace	}	64
-comment	LineComment	// 测试 while 循环	65
 keyword	While	while	66
 identifier	Identifier	x	67
 operator	Less	<	68
@@ -83,7 +72,6 @@ operator	Plus	+	74
 constant	IntegerConstant	1	75
 delimiter	Semicolon	;	76
 delimiter	RBrace	}	77
-comment	LineComment	// 测试 for-in 循环	78
 keyword	For	for	79
 identifier	Identifier	i	80
 keyword	In	in	81
@@ -102,7 +90,6 @@ delimiter	RBrace	}	93
 keyword	Continue	continue	94
 delimiter	Semicolon	;	95
 delimiter	RBrace	}	96
-comment	LineComment	// 测试 loop 循环	97
 keyword	Loop	loop	98
 delimiter	LBrace	{	99
 identifier	Identifier	x	100
@@ -120,7 +107,6 @@ keyword	Break	break	111
 delimiter	Semicolon	;	112
 delimiter	RBrace	}	113
 delimiter	RBrace	}	114
-comment	LineComment	// 测试运算符	115
 keyword	Let	let	116
 identifier	Identifier	a	117
 delimiter	Colon	:	118
@@ -157,7 +143,6 @@ identifier	Identifier	x	148
 operator	Slash	/	149
 identifier	Identifier	y	150
 delimiter	Semicolon	;	151
-comment	LineComment	// 测试比较运算符	152
 keyword	Let	let	153
 identifier	Identifier	e	154
 delimiter	Colon	:	155
@@ -194,7 +179,6 @@ identifier	Identifier	x	185
 operator	LessEqual	<=	186
 identifier	Identifier	y	187
 delimiter	Semicolon	;	188
-comment	LineComment	// 测试数组	189
 keyword	Let	let	190
 identifier	Identifier	arr	191
 delimiter	Colon	:	192
@@ -222,7 +206,6 @@ delimiter	LBracket	[	213
 constant	IntegerConstant	0	214
 delimiter	RBracket	]	215
 delimiter	Semicolon	;	216
-comment	LineComment	// 测试函数调用	217
 keyword	Let	let	218
 identifier	Identifier	result	219
 delimiter	Colon	:	220
@@ -235,7 +218,6 @@ delimiter	Comma	,	226
 identifier	Identifier	y	227
 delimiter	RParen	)	228
 delimiter	Semicolon	;	229
-comment	LineComment	// 测试 return	230
 keyword	Return	return	231
 identifier	Identifier	result	232
 delimiter	Semicolon	;	233
@@ -267,7 +249,6 @@ keyword	Return	return	258
 identifier	Identifier	sum	259
 delimiter	Semicolon	;	260
 delimiter	RBrace	}	261
-comment	LineComment	// 测试特殊符号	262
 keyword	Fn	fn	263
 identifier	Identifier	test_special	264
 delimiter	LParen	(	265
@@ -296,7 +277,6 @@ declerator	I32	i32	287
 delimiter	Assign	=	288
 identifier	Identifier	y	289
 delimiter	Semicolon	;	290
-comment	LineComment	// 测试 . 和 ..	291
 keyword	Let	let	292
 identifier	Identifier	range	293
 delimiter	Assign	=	294

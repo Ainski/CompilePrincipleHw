@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/parser.dir/src/TokenStream.cpp.o CMakeFiles/parser.dir/src/lex.yy.cpp.o CMakeFiles/parser.dir/src/parser.cpp.o -o bin/parser 

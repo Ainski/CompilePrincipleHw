@@ -67,13 +67,13 @@ void TokenStream::load(istream& in) {
         if (t2 == string::npos) continue;
 
         Token tok;
-        tok.type     = trim(line.substr(0, t1));
+        tok.type     = StringToType(trim(line.substr(0, t1)));
         tok.category = trim(line.substr(t1 + 1, t2 - t1 - 1));
         tok.value    = line.substr(t2 + 1);   // keep as-is (may have $_ etc.)
         tok.pos      = idx;
 
-        if (tok.type == "comment") continue;  // skip comments
-        if (tok.type.empty())      continue;
+        if (tok.type == Type::COMMENT) continue;  // skip comments
+        if (tok.type == Type::TYPE_EOF) continue;
 
         toks.push_back(tok);
         ++idx;
@@ -109,7 +109,7 @@ bool TokenStream::check(const string& cat) const {
 }
 
 bool TokenStream::checkType(const string& tp, int offset) const {
-    return peek(offset).type == tp;
+    return typeToString(peek(offset).type) == tp;
 }
 
 bool TokenStream::atEnd() const {
@@ -121,25 +121,42 @@ bool TokenStream::match(const string& cat) {
     return false;
 }
 bool TokenStream::addToken(const Token& t,bool IsPrint) {
-    fstream ofs;
-    ofs.open(lexeroutput_file);
-    if (!ofs.is_open()){
-        cout << "Failed to open file: " << lexeroutput_file << endl;
-        return false;
-    }
+
     if (IsPrint) {
         cout<<t.type<<"\t"<<t.category<<"\t"<<t.value<<"\t" << t.pos <<"\n";
     }
-    ofs <<t.type<<"\t"<<t.category<<"\t"<<t.value<<"\t" << t.pos<<"\n";
-    if (t.type != "comment") {
-        toks.push_back(t);
-    }
-    ofs.close();
+    
+    toks.push_back(t);
+    
     return true;
 }
 
 void TokenStream::displayTokens() const {
     for (const auto& t : toks) {
-        cout << t.type << "\t" << t.category << "\t" << t.value << "\n";
+        cout << "Type\tCategory\tValue\tPos\tLine\tColumn\n";
+        cout << t << endl;
     }
+}
+
+void TokenStream::to_file(const string& filename) const {
+    ofstream ofs(filename);
+    if (!ofs.is_open()) {
+        cout << "Failed to open file: " << filename << endl;
+        return;
+    }
+    ofs << "Type\tCategory\tValue\tPos\tLine\tColumn\n";
+    for (const auto& t : toks) {
+        ofs << t <<endl;
+    }
+    ofs.close();
+}
+
+void TokenStream::remove_comments() {
+    vector<Token> new_toks;
+    for (const auto& t : toks) {
+        if (typeToString(t.type) != "comment") {
+            new_toks.push_back(t);
+        }
+    }
+    toks = move(new_toks);
 }
