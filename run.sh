@@ -76,7 +76,7 @@ TOOLCHAIN_EOF
 
     # 获取当前flex版本（如果未安装，变量为空）
     flex_version=$(flex --version 2>/dev/null | awk '{print $2}')
-    g++_version=$(g++ --version 2>/dev/null | head -n 1 | awk '{print $3}')
+    gpp_version=$(g++ --version 2>/dev/null | head -n 1 | awk '{print $3}')
 
     # 检查并安装flex 2.6.4
     if [ "$flex_version" = "2.6.4" ]; then
@@ -87,7 +87,7 @@ TOOLCHAIN_EOF
     fi
 
     # 检查g++版本
-    if [ -n "$g++_version" ]; then
+    if [ -n "$gpp_version" ]; then
         log "g++ version $g++_version is installed"
     else
         log "g++ is not installed, installing g++..."
@@ -95,7 +95,8 @@ TOOLCHAIN_EOF
     fi
     
     # 检查mingw-w64
-    if command -v x86_64-w64-mingw32-g++ &> /dev/null; then
+    gpp86version=$(x86_64-w64-mingw32-g++ --version 2>/dev/null | head -n 1 | awk '{print $3}')
+    if [ -n "$gpp86version" ]; then
         log "mingw-w64 is installed"
     else
         log "mingw-w64 is not installed, installing mingw-w64..."
@@ -103,18 +104,70 @@ TOOLCHAIN_EOF
     fi
 
     # 检查cmake
-    if command -v cmake &> /dev/null; then
+    cmakeversin=$(cmake --version | head -n 1 | awk '{print $3}')
+    if [ -n "$cmakeversin" ]; then
         log "cmake is installed"
     else
         log "cmake is not installed, installing cmake..."
         sudo apt install -y cmake
     fi
     
-    if command -v make &> /dev/null; then
+    # 检查make
+    makeversion=$(make --version | head -n 1 | awk '{print $3}')
+    if [ -n "$makeversion" ]; then
         log "make is installed"
     else
         log "make is not installed, installing make..."
         sudo apt install -y make
+    fi
+    # 检查 vcpkg
+    vcpkgversin=$(vcpkg version | awk '{print $2}')
+    if [ -n "$vcpkgversin" ]; then
+        log "vcpkg is installed"
+    else
+        log "vcpkg is not installed, installing vcpkg..."
+        path=$PWD
+        git clone https://github.com/microsoft/vcpkg.git ~/vcpkg --depth 1
+        cd ~/vcpkg
+
+        chmod +x bootstrap-vcpkg.sh
+        ./bootstrap-vcpkg.sh
+
+        # 配置环境变量（修复路径拼接问题）
+        echo "export VCPKG_ROOT=$HOME/vcpkg" >> ~/.bashrc
+        echo "export PATH=\$VCPKG_ROOT:\$PATH" >> ~/.bashrc
+
+        export VCPKG_ROOT="$HOME/vcpkg"
+        export PATH="$VCPKG_ROOT:$PATH"
+
+        # 让当前 shell 立即生效
+        source ~/.bashrc
+
+        cd "$path"
+        log "vcpkg 安装完成"
+    fi
+    
+    # 检查并安装 Linux 版本的 glfw3
+    vcpkg list | grep "glfw3:x64-linux" >/dev/null
+    if [ $? -eq 0 ]; then
+        log "glfw3:x64-linux 已安装"
+    else
+        log "glfw3:x64-linux 未安装"
+        sudo apt-get install -y curl build-essential mesa-common-dev libxinerama-dev \
+        libglu1-mesa-dev libxcursor-dev libxrandr-dev libxi-dev libxxf86vm-dev
+        vcpkg install glfw3:x64-linux
+    fi
+    
+    # 检查并安装 Windows mingw 版本的 glfw3（用于交叉编译）
+    vcpkg list | grep "glfw3:x64-mingw-dynamic" >/dev/null
+    if [ $? -eq 0 ]; then
+        log "glfw3:x64-mingw-dynamic 已安装"
+    else
+        log "glfw3:x64-mingw-dynamic 未安装，正在安装..."
+        vcpkg install glfw3:x64-mingw-dynamic
+        if [ $? -ne 0 ]; then
+            log "警告：glfw3:x64-mingw-dynamic 安装失败，Windows 版本可能无法正常工作"
+        fi
     fi
 
     # 进入parser目录并执行编译+运行
@@ -179,16 +232,43 @@ TOOLCHAIN_EOF
         if [ -n "$MINGW_TOOLCHAIN" ]; then
             log "找到 mingw-w64 工具链: $MINGW_TOOLCHAIN"
             mkdir -p build-win && cd build-win
-            cmake .. -DCMAKE_TOOLCHAIN_FILE="$MINGW_TOOLCHAIN"
+            cmake .. -DCMAKE_TOOLCHAIN_FILE="$MINGW_TOOLCHAIN" -DBUILD_WINDOWS=ON
             make -j4
             
             if [ $? -ne 0 ]; then
                 log "错误：Windows版本编译失败"
                 exit 1
             fi
-            
+
             log "Windows版本编译成功: build-win/bin/${flex_output_executable}.exe"
             cd ..
+
+            # 4. 拷贝 Windows 运行所需的 DLL 文件
+            log "========== 拷贝 Windows 运行时依赖 =========="
+            
+            # 检查 VCPKG_ROOT 环境变量
+            if [ -z "$VCPKG_ROOT" ]; then
+                log "警告: VCPKG_ROOT 环境变量未设置，尝试使用默认路径 ~/vcpkg"
+                VCPKG_ROOT="$HOME/vcpkg"
+            fi
+            
+            # GLFW3 DLL 路径
+            GLFW_DLL_SRC="$VCPKG_ROOT/installed/x64-mingw-dynamic/bin/glfw3.dll"
+            GLFW_DLL_DST="build-win/bin/glfw3.dll"
+            
+            if [ -f "$GLFW_DLL_SRC" ]; then
+                cp "$GLFW_DLL_SRC" "$GLFW_DLL_DST"
+                log "已拷贝 glfw3.dll -> build-win/bin/"
+            else
+                log "警告: 未找到 glfw3.dll ($GLFW_DLL_SRC)"
+                log "提示: 请确保已安装 glfw3:x64-mingw-dynamic"
+            fi
+            
+            # 如果需要其他 DLL（如 OpenGL 相关），也可以在这里添加
+            # 例如：libwinpthread-1.dll, libstdc++-6.dll, libgcc_s_seh-1.dll 等
+            # 这些是 MinGW 运行时库，如果静态链接则不需要
+            
+            log "Windows 运行时依赖拷贝完成"
         else
             log "警告：未找到 mingw-w64 工具链文件，跳过 Windows 版本编译"
             log "提示：可以手动安装 mingw-w64 或指定正确的工具链路径"

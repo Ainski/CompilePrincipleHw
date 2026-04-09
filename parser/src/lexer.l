@@ -5,11 +5,16 @@
 #include<stdlib.h>
 #include"../include/TokenStream.h"
 #include "../include/Token.h"
+#include "../include/logprintf.h"
 
 #define YY_DECL int yylex()
 
-// 列号计数器
+// 列号计数器 & Token 起始列号
 static int yycolno = 1;
+static int token_start_col = 1;
+
+// YY_USER_ACTION: 在每次匹配前记录 Token 的起始列号
+#define YY_USER_ACTION token_start_col = yycolno;
 
 int yylex();
 void yyerror(const char * msg);
@@ -25,12 +30,27 @@ int POS_COUNT = 1;
 // ====================================
 
 #undef YY_INPUT
-#define YY_INPUT(buf,result,max_size)\
-    if (!INPUT_FILESTREAM.eof() && INPUT_FILESTREAM.readsome(buf, max_size) > 0) {\
-        result = INPUT_FILESTREAM.gcount();\
-    } else {\
-        result = 0;\
-    }
+#ifdef WINDOWS_BUILD
+    // Windows: use read() for compatibility with MinGW
+    #define YY_INPUT(buf,result,max_size)\
+        if (!INPUT_FILESTREAM.eof()) {\
+            INPUT_FILESTREAM.read(buf, max_size);\
+            result = INPUT_FILESTREAM.gcount();\
+            if (result == 0 && INPUT_FILESTREAM.eof()) {\
+                result = 0;\
+            }\
+        } else {\
+            result = 0;\
+        }
+#else
+    // Linux: use readsome() for compatibility
+    #define YY_INPUT(buf,result,max_size)\
+        if (!INPUT_FILESTREAM.eof() && INPUT_FILESTREAM.readsome(buf, max_size) > 0) {\
+            result = INPUT_FILESTREAM.gcount();\
+        } else {\
+            result = 0;\
+        }
+#endif
 %}
 
 %option yylineno
@@ -124,7 +144,8 @@ continue                { CURRENT_TOKEN = Token(Type::KEYWORD, "Continue", yytex
 
 "#"                     { CURRENT_TOKEN = Token(Type::DELIMITER, "End", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
 
-[ \t\n\r]               { yycolno += yyleng; }
+[ \t]                   { yycolno += yyleng; }
+[\r\n|\r|\n]                  { yycolno = 1; }
 
 .                       { CURRENT_TOKEN = Token(Type::TYPE_EOF, "Unknown", yytext, POS_COUNT++, yylineno, yycolno); return 1; }
 
@@ -140,10 +161,11 @@ TokenStream lex(const string& filepath)
     TokenStream ts;
     while(yylex()){
         ts.addToken(CURRENT_TOKEN);
+    //    log(LogLevel::INFO , CURRENT_TOKEN.value);
     }
     INPUT_FILESTREAM.close();
     return ts;
-}
+}   
 
 void yyerror(const char * msg) {
     std::cerr << "Error: " << msg << std::endl;

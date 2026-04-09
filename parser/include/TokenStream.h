@@ -20,14 +20,8 @@
 #include "Token.h"
 using namespace std;
 
-
-
-
-
-
-
-
 class TokenStream {
+protected:
     vector<Token> toks;
     int cur = 0;
     int FILETOKEN = 0 ; 

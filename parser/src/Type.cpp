@@ -1,4 +1,4 @@
-#include "Type.h"
+#include "../include/Type.h"
 
 string typeToString(const Type& t) {
     switch (t) {
