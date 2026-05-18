@@ -1,0 +1,14 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_1_3
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <ReturnStmt>
+        Return: return
+        Semicolon: ;
+      RBrace: }

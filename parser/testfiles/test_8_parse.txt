@@ -1,0 +1,110 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_8_1
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Mut: mut
+          Identifier: a
+          Colon: :
+          <Type>
+            LBracket: [
+            <Type>
+              I32: i32
+            Semicolon: ;
+            IntegerConstant: 3
+            RBracket: ]
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_8_2
+      LParen: (
+      <ParamList>
+        <Param>
+          Mut: mut
+          Identifier: a
+          Colon: :
+          <Type>
+            LBracket: [
+            <Type>
+              I32: i32
+            Semicolon: ;
+            IntegerConstant: 3
+            RBracket: ]
+      RParen: )
+    <Block>
+      LBrace: {
+      <AssignStmt>
+        <Identifier>
+          Identifier: a
+        Assign: =
+        <ArrayLit>
+          LBracket: [
+          <Literal>
+            IntegerConstant: 1
+          Comma: ,
+          <Literal>
+            IntegerConstant: 2
+          Comma: ,
+          <Literal>
+            IntegerConstant: 3
+          RBracket: ]
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_8_3
+      LParen: (
+      <ParamList>
+        <Param>
+          Mut: mut
+          Identifier: a
+          Colon: :
+          <Type>
+            LBracket: [
+            <Type>
+              I32: i32
+            Semicolon: ;
+            IntegerConstant: 3
+            RBracket: ]
+      RParen: )
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Mut: mut
+          Identifier: b
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <IndexExpr>
+          Identifier: a
+          LBracket: [
+          <Literal>
+            IntegerConstant: 0
+          RBracket: ]
+        Semicolon: ;
+      <AssignStmt>
+        <IndexExpr>
+          Identifier: a
+          LBracket: [
+          <Literal>
+            IntegerConstant: 0
+          RBracket: ]
+        Assign: =
+        <Literal>
+          IntegerConstant: 1
+        Semicolon: ;
+      RBrace: }

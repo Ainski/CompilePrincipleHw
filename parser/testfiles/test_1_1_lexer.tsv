@@ -1,0 +1,9 @@
+Type	Category	Value	Pos	Line	Column
+comment	LineComment	// 规则 1.1 基础程序：空函数	1	1	1
+keyword	Fn	fn	2	2	1
+identifier	Identifier	program_1_1	3	2	2
+delimiter	LParen	(	4	2	2
+delimiter	RParen	)	5	2	2
+delimiter	LBrace	{	6	2	3
+delimiter	RBrace	}	7	4	1
+delimiter	End	#	8	5	1

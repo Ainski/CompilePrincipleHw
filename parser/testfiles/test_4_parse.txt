@@ -1,0 +1,149 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_4_1
+      LParen: (
+      <ParamList>
+        <Param>
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+      Arrow: ->
+      <Type>
+        I32: i32
+    <Block>
+      LBrace: {
+      <IfStmt>
+        If: if
+        <CmpExpr>
+          <Identifier>
+            Identifier: a
+          Greater: >
+          <Literal>
+            IntegerConstant: 0
+        <Block>
+          LBrace: {
+          <ReturnStmt>
+            Return: return
+            <Literal>
+              IntegerConstant: 1
+            Semicolon: ;
+          RBrace: }
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_4_2
+      LParen: (
+      <ParamList>
+        <Param>
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+      Arrow: ->
+      <Type>
+        I32: i32
+    <Block>
+      LBrace: {
+      <IfStmt>
+        If: if
+        <CmpExpr>
+          <Identifier>
+            Identifier: a
+          Greater: >
+          <Literal>
+            IntegerConstant: 0
+        <Block>
+          LBrace: {
+          <ReturnStmt>
+            Return: return
+            <Literal>
+              IntegerConstant: 1
+            Semicolon: ;
+          RBrace: }
+        <ElseClause>
+          Else: else
+          <Block>
+            LBrace: {
+            <ReturnStmt>
+              Return: return
+              <Literal>
+                IntegerConstant: 0
+              Semicolon: ;
+            RBrace: }
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_4_3
+      LParen: (
+      <ParamList>
+        <Param>
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+      Arrow: ->
+      <Type>
+        I32: i32
+    <Block>
+      LBrace: {
+      <IfStmt>
+        If: if
+        <CmpExpr>
+          <Identifier>
+            Identifier: a
+          Greater: >
+          <Literal>
+            IntegerConstant: 0
+        <Block>
+          LBrace: {
+          <ReturnStmt>
+            Return: return
+            <AddExpr>
+              <Identifier>
+                Identifier: a
+              Plus: +
+              <Literal>
+                IntegerConstant: 1
+            Semicolon: ;
+          RBrace: }
+        <ElseClause>
+          Else: else
+          <IfStmt>
+            If: if
+            <CmpExpr>
+              <Identifier>
+                Identifier: a
+              Less: <
+              <Literal>
+                IntegerConstant: 0
+            <Block>
+              LBrace: {
+              <ReturnStmt>
+                Return: return
+                <AddExpr>
+                  <Identifier>
+                    Identifier: a
+                  Minus: -
+                  <Literal>
+                    IntegerConstant: 1
+                Semicolon: ;
+              RBrace: }
+            <ElseClause>
+              Else: else
+              <Block>
+                LBrace: {
+                <ReturnStmt>
+                  Return: return
+                  <Literal>
+                    IntegerConstant: 0
+                  Semicolon: ;
+                RBrace: }
+      RBrace: }

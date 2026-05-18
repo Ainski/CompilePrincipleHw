@@ -1,0 +1,11 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_1_1
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      RBrace: }

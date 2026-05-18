@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /d/CompilePrincipleHw/parser/src/*.cpp /d/CompilePrincipleHw/parser/include/*.h)",
+      "Bash(wc:*)"
+    ]
+  }
+}

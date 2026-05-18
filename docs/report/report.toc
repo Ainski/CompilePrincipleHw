@@ -1,0 +1,102 @@
+\contentsline {section}{摘要}{5}{section*.2}%
+\contentsline {section}{\numberline {1}概述}{6}{section.1}%
+\contentsline {subsection}{\numberline {1.1}项目背景与目标}{6}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}目标语言简介}{6}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}团队分工与开发环境}{7}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}系统架构}{8}{subsection.1.4}%
+\contentsline {section}{\numberline {2}目标语言文法定义}{9}{section.2}%
+\contentsline {subsection}{\numberline {2.1}词法规则}{9}{subsection.2.1}%
+\contentsline {subsubsection}{\numberline {2.1.1}关键字}{9}{subsubsection.2.1.1}%
+\contentsline {subsubsection}{\numberline {2.1.2}运算符}{9}{subsubsection.2.1.2}%
+\contentsline {subsubsection}{\numberline {2.1.3}界符}{10}{subsubsection.2.1.3}%
+\contentsline {subsubsection}{\numberline {2.1.4}常量类型}{10}{subsubsection.2.1.4}%
+\contentsline {subsubsection}{\numberline {2.1.5}标识符与类型声明符}{11}{subsubsection.2.1.5}%
+\contentsline {subsubsection}{\numberline {2.1.6}注释}{11}{subsubsection.2.1.6}%
+\contentsline {subsection}{\numberline {2.2}语法规则}{11}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}基础定义（规则 0.1 -- 0.3）}{11}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}程序结构（规则 1.1 -- 1.5）}{12}{subsubsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.3}变量声明与赋值（规则 2.0 -- 2.3）}{13}{subsubsection.2.2.3}%
+\contentsline {subsubsection}{\numberline {2.2.4}表达式（规则 3.1 -- 3.5）}{14}{subsubsection.2.2.4}%
+\contentsline {subsubsection}{\numberline {2.2.5}选择结构（规则 4.1 -- 4.3）}{16}{subsubsection.2.2.5}%
+\contentsline {subsubsection}{\numberline {2.2.6}循环结构（规则 5.0 -- 5.4）}{17}{subsubsection.2.2.6}%
+\contentsline {subsubsection}{\numberline {2.2.7}引用与借用（规则 6.1 -- 6.4）}{18}{subsubsection.2.2.7}%
+\contentsline {subsubsection}{\numberline {2.2.8}函数表达式块（规则 7.0 -- 7.4）}{18}{subsubsection.2.2.8}%
+\contentsline {subsubsection}{\numberline {2.2.9}数组（规则 8.1 -- 8.3）}{19}{subsubsection.2.2.9}%
+\contentsline {subsubsection}{\numberline {2.2.10}元组（规则 9.1 -- 9.3）}{20}{subsubsection.2.2.10}%
+\contentsline {section}{\numberline {3}词法分析器设计与实现}{22}{section.3}%
+\contentsline {subsection}{\numberline {3.1}词法分析理论基础}{22}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Flex工具介绍}{23}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Token设计}{24}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.1}Type枚举定义}{24}{subsubsection.3.3.1}%
+\contentsline {subsubsection}{\numberline {3.3.2}Token类定义}{24}{subsubsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.4}正则表达式规则设计}{25}{subsection.3.4}%
+\contentsline {subsubsection}{\numberline {3.4.1}常量识别规则}{25}{subsubsection.3.4.1}%
+\contentsline {subsubsection}{\numberline {3.4.2}关键字识别规则}{26}{subsubsection.3.4.2}%
+\contentsline {subsubsection}{\numberline {3.4.3}关键字与标识符的区分机制}{27}{subsubsection.3.4.3}%
+\contentsline {subsubsection}{\numberline {3.4.4}运算符与界符识别}{28}{subsubsection.3.4.4}%
+\contentsline {subsection}{\numberline {3.5}输出格式设计}{29}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}TokenStream接口}{30}{subsection.3.6}%
+\contentsline {section}{\numberline {4}语法分析器设计与实现}{32}{section.4}%
+\contentsline {subsection}{\numberline {4.1}语法分析理论基础}{32}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.1.1}递归下降分析法原理}{32}{subsubsection.4.1.1}%
+\contentsline {subsubsection}{\numberline {4.1.2}LL(1)文法判定}{33}{subsubsection.4.1.2}%
+\contentsline {subsubsection}{\numberline {4.1.3}左递归消除方法}{33}{subsubsection.4.1.3}%
+\contentsline {subsection}{\numberline {4.2}语法树数据结构}{33}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Node类定义}{34}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}辅助函数}{34}{subsubsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.3}Parser类实现}{35}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.1}核心解析函数示例}{36}{subsubsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.4}表达式解析与运算符优先级}{38}{subsection.4.4}%
+\contentsline {subsubsection}{\numberline {4.4.1}表达式解析函数}{38}{subsubsection.4.4.1}%
+\contentsline {section}{\numberline {5}GUI可视化模块}{41}{section.5}%
+\contentsline {subsection}{\numberline {5.1}ImGui框架简介}{41}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}界面布局设计}{42}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}核心组件实现}{42}{subsection.5.3}%
+\contentsline {subsubsection}{\numberline {5.3.1}Token列表展示}{42}{subsubsection.5.3.1}%
+\contentsline {subsubsection}{\numberline {5.3.2}语法树渲染}{43}{subsubsection.5.3.2}%
+\contentsline {subsection}{\numberline {5.4}GUI架构}{44}{subsection.5.4}%
+\contentsline {section}{\numberline {6}构建与跨平台支持}{45}{section.6}%
+\contentsline {subsection}{\numberline {6.1}CMake构建系统}{45}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Linux/Windows交叉编译配置}{45}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}运行脚本说明}{46}{subsection.6.3}%
+\contentsline {section}{\numberline {7}测试与结果分析}{48}{section.7}%
+\contentsline {subsection}{\numberline {7.1}测试用例设计}{48}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}词法分析输出示例}{50}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}语法树输出示例}{50}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}分规则测试用例与结果}{51}{subsection.7.4}%
+\contentsline {subsubsection}{\numberline {7.4.1}程序结构测试（规则 1.1 -- 1.5）}{52}{subsubsection.7.4.1}%
+\contentsline {subsubsection}{\numberline {7.4.2}变量声明与赋值测试（规则 2.0 -- 2.3）}{52}{subsubsection.7.4.2}%
+\contentsline {subsubsection}{\numberline {7.4.3}表达式测试（规则 3.1 -- 3.5）}{53}{subsubsection.7.4.3}%
+\contentsline {subsubsection}{\numberline {7.4.4}选择结构测试（规则 4.1 -- 4.3）}{54}{subsubsection.7.4.4}%
+\contentsline {subsubsection}{\numberline {7.4.5}循环结构测试（规则 5.0 -- 5.4）}{55}{subsubsection.7.4.5}%
+\contentsline {subsubsection}{\numberline {7.4.6}引用与借用测试（规则 6.1 -- 6.4）}{55}{subsubsection.7.4.6}%
+\contentsline {subsubsection}{\numberline {7.4.7}数组测试（规则 8.1 -- 8.3）}{56}{subsubsection.7.4.7}%
+\contentsline {subsubsection}{\numberline {7.4.8}元组类型测试（规则 9.1）}{57}{subsubsection.7.4.8}%
+\contentsline {subsection}{\numberline {7.5}运行效果截图}{57}{subsection.7.5}%
+\contentsline {section}{\numberline {8}思考与分析}{59}{section.8}%
+\contentsline {subsection}{\numberline {8.1}思考题一：1.4 函数输入中的形参列表可以识别怎样的语言？}{59}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}思考题二：9.1 元组比 8.1 数组多了几条产生式，为什么？}{60}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}部分羁绊分析}{61}{subsection.8.3}%
+\contentsline {subsubsection}{\numberline {8.3.1}羁绊一：赋值语句 + 类型规则——类型不匹配应报错}{61}{subsubsection.8.3.1}%
+\contentsline {subsubsection}{\numberline {8.3.2}羁绊二：for 循环 + 数组——仅数组为可迭代结构}{61}{subsubsection.8.3.2}%
+\contentsline {subsubsection}{\numberline {8.3.3}羁绊三：赋值语句 + 变量不可变属性——对不可变变量赋值应报错}{62}{subsubsection.8.3.3}%
+\contentsline {subsection}{\numberline {8.4}LR(1) 冲突分析}{62}{subsection.8.4}%
+\contentsline {subsubsection}{\numberline {8.4.1}经典悬空 else 问题}{62}{subsubsection.8.4.1}%
+\contentsline {subsubsection}{\numberline {8.4.2}规则 7.0 中的移进-归约冲突}{63}{subsubsection.8.4.2}%
+\contentsline {subsubsection}{\numberline {8.4.3}其他潜在冲突分析}{64}{subsubsection.8.4.3}%
+\contentsline {section}{\numberline {9}总结与反思}{65}{section.9}%
+\contentsline {subsection}{\numberline {9.1}项目成果总结}{65}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}遇到的问题与解决方案}{65}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}知识收获与能力提升}{66}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}改进方向与展望}{66}{subsection.9.4}%
+\contentsline {subsection}{\numberline {9.5}个人想法与体会}{67}{subsection.9.5}%
+\contentsline {subsubsection}{\numberline {9.5.1}对文法设计的见解}{67}{subsubsection.9.5.1}%
+\contentsline {subsubsection}{\numberline {9.5.2}对实现方案的取舍思考}{67}{subsubsection.9.5.2}%
+\contentsline {subsubsection}{\numberline {9.5.3}对 Rust 语言特性的分析}{68}{subsubsection.9.5.3}%
+\contentsline {section}{\numberline {10}参考文献}{69}{section.10}%
+\contentsline {section}{附录A\hskip 1em\relax 完整文法规则列表}{70}{section*.3}%
+\contentsline {subsection}{\numberline {A.1}完整产生式列表}{70}{subsection.10.1}%
+\contentsline {section}{附录B\hskip 1em\relax 完整测试输入及输出}{72}{section*.4}%
+\contentsline {subsection}{\numberline {B.1}完整词法分析输出}{72}{subsection.10.1}%
+\contentsline {subsection}{\numberline {B.2}完整语法树输出}{72}{subsection.10.2}%
+\contentsline {subsection}{\numberline {B.3}运行命令示例}{72}{subsection.10.3}%

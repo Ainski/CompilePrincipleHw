@@ -1,0 +1,25 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_9_1
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: a
+          Colon: :
+          <Type>
+            LParen: (
+            <Type>
+              I32: i32
+            Comma: ,
+            <Type>
+              I32: i32
+            RParen: )
+        Semicolon: ;
+      RBrace: }

@@ -117,10 +117,22 @@ $RECYCLE.BIN/
 .env.local
 .env.*.local
 
-# ==================== Python 相关 ====================
+# ==================== LaTeX 中间文件 ====================
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+*.xdv
+*.out
+
+# ==================== Python/uv 相关 ====================
+.venv/
 __pycache__/
 *.pyc
 *.pyo
+.python-version
+uv.lock
 
 # ==================== Node.js 相关 ====================
 node_modules/

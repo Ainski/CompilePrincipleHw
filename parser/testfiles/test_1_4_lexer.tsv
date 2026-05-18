@@ -1,0 +1,13 @@
+Type	Category	Value	Pos	Line	Column
+comment	LineComment	// 规则 1.4 函数输入：形参列表	1	1	1
+keyword	Fn	fn	2	2	1
+identifier	Identifier	program_1_4	3	2	2
+delimiter	LParen	(	4	2	2
+keyword	Mut	mut	5	2	2
+identifier	Identifier	a	6	2	3
+delimiter	Colon	:	7	2	3
+declerator	I32	i32	8	2	3
+delimiter	RParen	)	9	2	3
+delimiter	LBrace	{	10	2	4
+delimiter	RBrace	}	11	4	1
+delimiter	End	#	12	5	1

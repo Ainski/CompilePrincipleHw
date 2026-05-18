@@ -1,0 +1,144 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_6_1
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: b
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: c
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <Literal>
+          IntegerConstant: 1
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: d
+        Assign: =
+        <Literal>
+          IntegerConstant: 2
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_6_2
+      LParen: (
+      <ParamList>
+        <Param>
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: b
+          Colon: :
+          <Type>
+            Ampersand: &
+            <Type>
+              I32: i32
+        Assign: =
+        <RefExpr>
+          Ampersand: &
+          <Identifier>
+            Identifier: a
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_6_3
+      LParen: (
+      <ParamList>
+        <Param>
+          Mut: mut
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Mut: mut
+          Identifier: b
+          Colon: :
+          <Type>
+            Ampersand: &
+            Mut: mut
+            <Type>
+              I32: i32
+        Assign: =
+        <RefExpr>
+          Ampersand: &
+          Mut: mut
+          <Identifier>
+            Identifier: a
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_6_4
+      LParen: (
+      <ParamList>
+        <Param>
+          Identifier: a
+          Colon: :
+          <Type>
+            Ampersand: &
+            Mut: mut
+            <Type>
+              I32: i32
+      RParen: )
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: b
+        Assign: =
+        <DerefExpr>
+          Star: *
+          <Identifier>
+            Identifier: a
+        Semicolon: ;
+      <AssignStmt>
+        <DerefExpr>
+          Star: *
+          <Identifier>
+            Identifier: a
+        Assign: =
+        <Literal>
+          IntegerConstant: 3
+        Semicolon: ;
+      RBrace: }

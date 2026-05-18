@@ -1,0 +1,80 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_2_1
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Mut: mut
+          Identifier: a
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Mut: mut
+          Identifier: b
+          Colon: :
+          <Type>
+            I32: i32
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_2_2
+      LParen: (
+      <ParamList>
+        <Param>
+          Mut: mut
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+    <Block>
+      LBrace: {
+      <AssignStmt>
+        <Identifier>
+          Identifier: a
+        Assign: =
+        <Literal>
+          IntegerConstant: 32
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_2_3
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Mut: mut
+          Identifier: a
+        Assign: =
+        <Literal>
+          IntegerConstant: 1
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Mut: mut
+          Identifier: b
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <Literal>
+          IntegerConstant: 1
+        Semicolon: ;
+      RBrace: }

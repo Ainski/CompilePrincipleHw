@@ -1,0 +1,21 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_1_2
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <EmptyStmt>
+        Semicolon: ;
+      <EmptyStmt>
+        Semicolon: ;
+      <EmptyStmt>
+        Semicolon: ;
+      <EmptyStmt>
+        Semicolon: ;
+      <EmptyStmt>
+        Semicolon: ;
+      RBrace: }

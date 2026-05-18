@@ -1,0 +1,14 @@
+Type	Category	Value	Pos	Line	Column
+comment	LineComment	// 规则 1.2 语句：空语句	1	1	1
+keyword	Fn	fn	2	2	1
+identifier	Identifier	program_1_2	3	2	2
+delimiter	LParen	(	4	2	2
+delimiter	RParen	)	5	2	2
+delimiter	LBrace	{	6	2	3
+delimiter	Semicolon	;	7	3	5
+delimiter	Semicolon	;	8	3	5
+delimiter	Semicolon	;	9	3	5
+delimiter	Semicolon	;	10	3	5
+delimiter	Semicolon	;	11	3	5
+delimiter	RBrace	}	12	4	1
+delimiter	End	#	13	5	1

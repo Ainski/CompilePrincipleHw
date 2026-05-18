@@ -1,0 +1,19 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_1_5
+      LParen: (
+      <ParamList>
+      RParen: )
+      Arrow: ->
+      <Type>
+        I32: i32
+    <Block>
+      LBrace: {
+      <ReturnStmt>
+        Return: return
+        <Literal>
+          IntegerConstant: 1
+        Semicolon: ;
+      RBrace: }

@@ -1,0 +1,137 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_5_1
+      LParen: (
+      <ParamList>
+        <Param>
+          Mut: mut
+          Identifier: n
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+    <Block>
+      LBrace: {
+      <WhileStmt>
+        While: while
+        <CmpExpr>
+          <Identifier>
+            Identifier: n
+          Greater: >
+          <Literal>
+            IntegerConstant: 0
+        <Block>
+          LBrace: {
+          <AssignStmt>
+            <Identifier>
+              Identifier: n
+            Assign: =
+            <AddExpr>
+              <Identifier>
+                Identifier: n
+              Minus: -
+              <Literal>
+                IntegerConstant: 1
+            Semicolon: ;
+          RBrace: }
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_5_2
+      LParen: (
+      <ParamList>
+        <Param>
+          Mut: mut
+          Identifier: n
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+    <Block>
+      LBrace: {
+      <ForStmt>
+        For: for
+        Mut: mut
+        Identifier: i
+        In: in
+        <RangeExpr>
+          <Literal>
+            IntegerConstant: 1
+          DotDot: ..
+          <AddExpr>
+            <Identifier>
+              Identifier: n
+            Plus: +
+            <Literal>
+              IntegerConstant: 1
+        <Block>
+          LBrace: {
+          <AssignStmt>
+            <Identifier>
+              Identifier: n
+            Assign: =
+            <AddExpr>
+              <Identifier>
+                Identifier: n
+              Minus: -
+              <Literal>
+                IntegerConstant: 1
+            Semicolon: ;
+          RBrace: }
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_5_3
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <LoopStmt>
+        Loop: loop
+        <Block>
+          LBrace: {
+          RBrace: }
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_5_4
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <WhileStmt>
+        While: while
+        <CmpExpr>
+          <Literal>
+            IntegerConstant: 1
+          EqualEqual: ==
+          <Literal>
+            IntegerConstant: 0
+        <Block>
+          LBrace: {
+          <ContinueStmt>
+            Continue: continue
+            Semicolon: ;
+          RBrace: }
+      <WhileStmt>
+        While: while
+        <CmpExpr>
+          <Literal>
+            IntegerConstant: 1
+          EqualEqual: ==
+          <Literal>
+            IntegerConstant: 1
+        <Block>
+          LBrace: {
+          <BreakStmt>
+            Break: break
+            Semicolon: ;
+          RBrace: }
+      RBrace: }

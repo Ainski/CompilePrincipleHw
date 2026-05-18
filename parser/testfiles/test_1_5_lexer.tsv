@@ -1,0 +1,14 @@
+Type	Category	Value	Pos	Line	Column
+comment	LineComment	// 规则 1.5 函数输出：返回类型	1	1	1
+keyword	Fn	fn	2	2	1
+identifier	Identifier	program_1_5	3	2	2
+delimiter	LParen	(	4	2	2
+delimiter	RParen	)	5	2	2
+operator	Arrow	->	6	2	3
+declerator	I32	i32	7	2	4
+delimiter	LBrace	{	8	2	5
+keyword	Return	return	9	3	5
+constant	IntegerConstant	1	10	3	6
+delimiter	Semicolon	;	11	3	6
+delimiter	RBrace	}	12	4	1
+delimiter	End	#	13	5	1

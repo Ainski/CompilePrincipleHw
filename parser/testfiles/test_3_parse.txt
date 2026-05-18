@@ -1,0 +1,200 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_3_1__1
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <ExprStmt>
+        <Literal>
+          IntegerConstant: 0
+        Semicolon: ;
+      <ExprStmt>
+        <ParenExpr>
+          LParen: (
+          <Literal>
+            IntegerConstant: 1
+          RParen: )
+        Semicolon: ;
+      <ExprStmt>
+        <ParenExpr>
+          LParen: (
+          <ParenExpr>
+            LParen: (
+            <Literal>
+              IntegerConstant: 2
+            RParen: )
+          RParen: )
+        Semicolon: ;
+      <ExprStmt>
+        <ParenExpr>
+          LParen: (
+          <ParenExpr>
+            LParen: (
+            <ParenExpr>
+              LParen: (
+              <Literal>
+                IntegerConstant: 3
+              RParen: )
+            RParen: )
+          RParen: )
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_3_1__2
+      LParen: (
+      <ParamList>
+        <Param>
+          Mut: mut
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+    <Block>
+      LBrace: {
+      <ExprStmt>
+        <Identifier>
+          Identifier: a
+        Semicolon: ;
+      <ExprStmt>
+        <ParenExpr>
+          LParen: (
+          <Identifier>
+            Identifier: a
+          RParen: )
+        Semicolon: ;
+      <ExprStmt>
+        <ParenExpr>
+          LParen: (
+          <ParenExpr>
+            LParen: (
+            <Identifier>
+              Identifier: a
+            RParen: )
+          RParen: )
+        Semicolon: ;
+      <ExprStmt>
+        <ParenExpr>
+          LParen: (
+          <ParenExpr>
+            LParen: (
+            <ParenExpr>
+              LParen: (
+              <Identifier>
+                Identifier: a
+              RParen: )
+            RParen: )
+          RParen: )
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_3_2
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <ExprStmt>
+        <CmpExpr>
+          <Literal>
+            IntegerConstant: 1
+          Less: <
+          <Literal>
+            IntegerConstant: 2
+        Semicolon: ;
+      <ExprStmt>
+        <CmpExpr>
+          <Literal>
+            IntegerConstant: 3
+          Greater: >
+          <Literal>
+            IntegerConstant: 4
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_3_3
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <ExprStmt>
+        <AddExpr>
+          <Literal>
+            IntegerConstant: 1
+          Plus: +
+          <Literal>
+            IntegerConstant: 2
+        Semicolon: ;
+      <ExprStmt>
+        <AddExpr>
+          <Literal>
+            IntegerConstant: 3
+          Minus: -
+          <Literal>
+            IntegerConstant: 4
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_3_4
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <ExprStmt>
+        <MulExpr>
+          <Literal>
+            IntegerConstant: 1
+          Star: *
+          <Literal>
+            IntegerConstant: 2
+        Semicolon: ;
+      <ExprStmt>
+        <MulExpr>
+          <Literal>
+            IntegerConstant: 3
+          Slash: /
+          <Literal>
+            IntegerConstant: 4
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_3_5__1
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: program_3_5__2
+      LParen: (
+      <ParamList>
+      RParen: )
+    <Block>
+      LBrace: {
+      <ExprStmt>
+        <CallExpr>
+          Identifier: program_3_5__1
+          LParen: (
+          <ArgList>
+          RParen: )
+        Semicolon: ;
+      RBrace: }
