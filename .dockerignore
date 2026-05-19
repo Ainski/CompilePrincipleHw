@@ -1,0 +1,6 @@
+parser/build/
+parser/build-win/
+parser/src/lex.yy.cpp
+parser/testfiles/output.tsv
+parser/testfiles/parse_tree.txt
+.git
