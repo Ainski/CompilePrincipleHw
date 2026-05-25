@@ -36,6 +36,7 @@ class SemanticAnalyzer {
 
     // visitor methods — return expression type
     void visitProgram(const Node* node);
+    void registerFunction(const Node* node);
     void visitFunction(const Node* node);
     void visitFuncHeader(const Node* node);
     void visitBlock(const Node* node);

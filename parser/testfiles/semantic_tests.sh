@@ -266,8 +266,8 @@ echo "[Rule 6.x] References"
 
 cat > "$TMPDIR/r6_pass.rs" << 'EOF'
 fn program_6(mut a:i32) {
-    let b:& i32=&a;
-    let mut c:&mut i32=&mut a;
+    let mut b:&mut i32=&mut a;
+    *b=3;
 }
 #
 EOF

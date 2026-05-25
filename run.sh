@@ -9,6 +9,8 @@ flex_input_file="./testfiles/input.rs"        # 测试输入文件
 flex_output_executable="parser"     # 最终可执行文件
 lex_output="./testfiles/output.tsv"          # 词法分析输出文件
 parse_output="./testfiles/parse_tree.txt"     # 语法分析输出文件
+semantic_output="./testfiles/semantic_result.txt"  # 语义分析输出文件
+ir_output="./testfiles/quadruple_ir.txt"      # 中间代码输出文件
 
 log(){
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] : $1 "
@@ -17,7 +19,7 @@ log(){
 # 显示帮助信息
 usage() {
     echo "Usage: $0 [OPTION]"
-    echo "Build and run a Flex lexical analyzer."
+    echo "Build and run the compiler pipeline (lexer + parser + semantic + IR)."
     echo ""
     echo "Options:"
     echo "  --clean    Remove all generated files (lex.yy.c, clex, output.txt)"
@@ -33,7 +35,7 @@ clean() {
         rm -f "parser/src/$flex_output"
         rm -rf "parser/build"
         rm -rf "parser/build-win"
-        rm -f "$lex_output" "$parse_output"
+        rm -f "$lex_output" "$parse_output" "$semantic_output" "$ir_output"
         log "Removed generated files"
     else
         log "parser directory not found, nothing to clean."
@@ -274,16 +276,18 @@ TOOLCHAIN_EOF
             log "提示：可以手动安装 mingw-w64 或指定正确的工具链路径"
         fi
 
-        # 4. 执行语法分析（使用 Linux 版本）
+        # 5. 执行完整编译流水线（使用 Linux 版本）
         if [ -f "build/bin/$flex_output_executable" ]; then
-            log "========== 执行语法分析 =========="
+            log "========== 执行编译流水线 =========="
             log "输入文件: $flex_input_file"
             ./build/bin/$flex_output_executable\
             --input "$flex_input_file"\
             --lexer-output "$lex_output"\
-            --parser-output "$parse_output"
+            --parser-output "$parse_output"\
+            --semantic-output "$semantic_output"\
+            --ir-output "$ir_output"
             if [ $? -ne 0 ]; then
-                log "错误：语法分析执行失败"
+                log "错误：编译流水线执行失败"
                 exit 1
             fi
         else

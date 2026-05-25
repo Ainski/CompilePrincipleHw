@@ -153,26 +153,25 @@ void SemanticAnalyzer::analyze(const Node* root) {
 }
 
 void SemanticAnalyzer::visitProgram(const Node* node) {
-    for (auto& c : node->children)
-        if (c->label == "Function") visitFunction(c.get());
+    auto funcNodes = findChildren(node, "Function");
+    // Pass 1: register all function signatures
+    for (auto* fn : funcNodes)
+        registerFunction(fn);
+    // Pass 2: analyze function bodies
+    for (auto* fn : funcNodes)
+        visitFunction(fn);
 }
 
-void SemanticAnalyzer::visitFunction(const Node* node) {
+void SemanticAnalyzer::registerFunction(const Node* node) {
     auto* header = findChild(node, "FuncHeader");
-    auto* block = findChild(node, "Block");
     if (!header) return;
 
-    // Parse function header
     string funcName;
     vector<pair<string, STypePtr>> params;
     STypePtr retType = SType::makeVoid();
-
     auto& hc = header->children;
-
-    // hc: Fn, Identifier, LParen, ParamList, RParen, [Arrow, Type]
     funcName = extractLeafValue(hc[1].get());
 
-    // Process ParamList
     auto* paramList = findChild(header, "ParamList");
     if (paramList) {
         auto paramNodes = findChildren(paramList, "Param");
@@ -185,7 +184,6 @@ void SemanticAnalyzer::visitFunction(const Node* node) {
         }
     }
 
-    // Check for return type
     for (size_t i = 0; i < hc.size(); i++) {
         if (isLeafCat(hc[i].get(), "Arrow") && i + 1 < hc.size()) {
             retType = parseTypeFromNode(hc[i + 1].get());
@@ -193,15 +191,23 @@ void SemanticAnalyzer::visitFunction(const Node* node) {
         }
     }
 
-    auto funcInfo = make_shared<FunctionInfo>(funcName, params, retType, extractLine(header));
-    functions[funcName] = funcInfo;
-    current_function = funcInfo;
+    functions[funcName] = make_shared<FunctionInfo>(funcName, params, retType, extractLine(header));
+}
 
-    // Enter function scope, insert params
+void SemanticAnalyzer::visitFunction(const Node* node) {
+    auto* header = findChild(node, "FuncHeader");
+    auto* block = findChild(node, "Block");
+    if (!header) return;
+
+    string funcName = extractLeafValue(header->children[1].get());
+    auto it = functions.find(funcName);
+    if (it == functions.end()) return;
+    current_function = it->second;
+
     symtab.enterScope();
-    for (auto& [pname, ptype] : params) {
+    for (auto& [pname, ptype] : current_function->params) {
         auto sym = make_shared<Symbol>(pname, ptype, true, symtab.scopeLevel(), extractLine(header));
-        sym->is_assigned = true; // params are initialized
+        sym->is_assigned = true;
         symtab.insert(sym);
     }
 
