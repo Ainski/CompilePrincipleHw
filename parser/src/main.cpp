@@ -15,6 +15,8 @@
 #include "../include/lexer.h"
 #include "../include/logprintf.h"
 #include "../include/parser.h"
+#include "../include/SemanticAnalyzer.h"
+#include "../include/IRGenerator.h"
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -30,42 +32,34 @@ using namespace std;
 // ============================================================
 int main(int argc, char *argv[]) {
 
-  CLI::App app{"Rust-like Language Parser"};
+  CLI::App app{"Rust-like Language Parser + Semantic Analyzer + IR Generator"};
 
   bool quiet = false;
   app.add_flag("-q,--quiet", quiet,
                "Quiet mode: suppress banner and verbose output");
 
-  /**
-   * 词法分析器输出文件
-   */
   string lexer_output = "";
   app.add_option("--lexer-output", lexer_output,
                  "Output file for lexer tokens (TSV format)");
 
-  /**
-   * 语法分析器输出文件
-   */
   string parser_output = "parser_output.txt";
   app.add_option("--parser-output", parser_output,
                  "Output file for parser results");
 
-  /**
-   * 是否需要屏幕打印
-   */
+  string semantic_output = "";
+  app.add_option("--semantic-output", semantic_output,
+                 "Output file for semantic analysis results");
+
+  string ir_output = "";
+  app.add_option("--ir-output", ir_output,
+                 "Output file for intermediate code (quadruples)");
+
   bool print_tokens = false;
   app.add_flag("--print-tokens", print_tokens, "Print tokens to console");
-
-  /**
-   * 输入文件路径
-   */
 
   string input = "";
   app.add_option("--input", input, "Input file path (Original Rust File)");
 
-  /**
-   * 是否启用gui界面
-   */
 #ifdef WINDOWS_BUILD
   bool use_gui = false;
   app.add_flag("--gui", use_gui, "Enable GUI interface");
@@ -90,22 +84,20 @@ int main(int argc, char *argv[]) {
     return app.exit(e);
   }
 
-  // GUI 模式：如果启用则启动 GUI（不依赖任何 main 中的变量）
 #ifdef WINDOWS_BUILD
   if (use_gui) {
     log(LogLevel::INFO, "Launching GUI mode...");
     extern void runGui(const std::string &input_file);
-    runGui(input); // 只传递输入文件路径，GUI 内部完成所有分析
+    runGui(input);
     return 0;
   }
 #endif
 
   log(LogLevel::INFO, "Token stream loaded successfully from: " + input);
 
-  TokenStream ts = lex(input); // 完成词法分析
+  TokenStream ts = lex(input);
 
   if (lexer_output != "") {
-
     ts.to_file(lexer_output);
   }
   if (print_tokens) {
@@ -114,8 +106,9 @@ int main(int argc, char *argv[]) {
   ts.remove_comments();
 
   Parser parser(ts);
+  NodePtr tree;
   try {
-    NodePtr tree = parser.parse();
+    tree = parser.parse();
     if (print_tokens) {
       log(LogLevel::INFO, "Parse tree:");
       tree->PrintToScreem();
@@ -135,6 +128,54 @@ int main(int argc, char *argv[]) {
   } catch (const exception &e) {
     cerr << "\n=== Parse error ===\n" << e.what() << "\n";
     return 1;
+  }
+
+  // ---- Semantic Analysis ----
+  if (!quiet)
+    log(LogLevel::INFO, "Running semantic analysis...");
+
+  SemanticAnalyzer analyzer;
+  analyzer.analyze(tree.get());
+
+  if (analyzer.hasErrors()) {
+    if (!quiet)
+      cout << "\n=== Semantic Errors ===\n";
+    if (semantic_output != "") {
+      ofstream ofs(semantic_output);
+      analyzer.printErrors(ofs);
+      log(LogLevel::INFO, "Semantic errors written to: " + semantic_output);
+      ofs.close();
+    }
+    analyzer.printErrors(cout);
+    return 1;
+  }
+
+  if (!quiet)
+    cout << "=== Semantic analysis passed ===\n" << endl;
+
+  if (semantic_output != "") {
+    ofstream ofs(semantic_output);
+    ofs << "Semantic analysis passed. No errors found.\n";
+    ofs.close();
+    log(LogLevel::INFO, "Semantic analysis result written to: " + semantic_output);
+  }
+
+  // ---- IR Generation ----
+  if (!quiet)
+    log(LogLevel::INFO, "Generating intermediate code...");
+
+  IRGenerator irgen;
+  irgen.generate(tree.get());
+
+  if (ir_output != "") {
+    irgen.writeIR(ir_output);
+    log(LogLevel::INFO, "IR written to: " + ir_output);
+  } else {
+    if (!quiet) {
+      cout << "\n=== Intermediate Code (Quadruples) ===\n";
+      irgen.printIR(cout);
+      cout << "=== IR generation complete ===\n" << endl;
+    }
   }
 
   return 0;

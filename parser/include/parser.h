@@ -17,6 +17,7 @@ public:
     string label;
     vector<unique_ptr<Node>> children;
     bool isLeaf = false;
+    int line = 0;
 
     explicit Node(string lbl, bool leaf = false)
         : label(move(lbl)), isLeaf(leaf) {}
@@ -73,12 +74,16 @@ class Parser {
     // Helper: consume a token and make a leaf node
     NodePtr consumeLeaf() {
         Token t = ts.advance();
-        return makeLeaf(t.category + ": " + t.value);
+        auto n = makeLeaf(t.category + ": " + t.value);
+        n->line = t.lineno;
+        return n;
     }
 
     NodePtr expectLeaf(const string& cat, const string& ctx = "") {
         Token t = ts.expect(cat, ctx);
-        return makeLeaf(t.category + ": " + t.value);
+        auto n = makeLeaf(t.category + ": " + t.value);
+        n->line = t.lineno;
+        return n;
     }
 
 public:
@@ -475,11 +480,34 @@ public:
             return node;
         }
 
-        // parenthesised expression
+        // parenthesised expression or tuple literal
         if (tok.category == "LParen") {
+            auto lparen = consumeLeaf();              // consume '('
+            if (ts.check("RParen")) {
+                // empty tuple ()
+                auto node = makeNode("TupleLit");
+                addChild(node, move(lparen));
+                addChild(node, consumeLeaf());        // ')'
+                return node;
+            }
+            NodePtr first = parseExpr();
+            if (ts.check("Comma")) {
+                // tuple literal (expr, expr, ...)
+                auto node = makeNode("TupleLit");
+                addChild(node, move(lparen));
+                addChild(node, move(first));
+                while (ts.check("Comma")) {
+                    addChild(node, consumeLeaf());    // ','
+                    if (!ts.check("RParen"))
+                        addChild(node, parseExpr());
+                }
+                addChild(node, expectLeaf("RParen", "')'"));
+                return node;
+            }
+            // plain paren expr (expr)
             auto node = makeNode("ParenExpr");
-            addChild(node, consumeLeaf());      // '('
-            addChild(node, parseExpr());
+            addChild(node, move(lparen));
+            addChild(node, move(first));
             addChild(node, expectLeaf("RParen", "')'"));
             return node;
         }

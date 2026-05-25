@@ -149,3 +149,9 @@ rust-test/
 # 临时脚本
 tmp.sh
 setup.sh
+
+# Semantic analysis and IR output
+*_ir.txt
+*_semantic.txt
+errors.txt
+parser_output.txt

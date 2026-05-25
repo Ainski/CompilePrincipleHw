@@ -1,0 +1,27 @@
+# 基于已有镜像（依赖已安装），只重编译项目代码
+FROM compile-principle-hw:latest AS builder
+
+WORKDIR /project
+COPY . .
+
+# flex 生成词法分析代码
+RUN cd parser/src && flex -o lex.yy.cpp lexer.l
+
+# 构建 Linux 版本
+RUN cd /project/parser && rm -rf build && mkdir -p build && cd build \
+    && cmake .. && make -j$(nproc)
+
+# 构建 Windows 版本
+RUN cd /project/parser && rm -rf build-win && mkdir -p build-win && cd build-win \
+    && cmake .. \
+       -DCMAKE_SYSTEM_NAME=Windows \
+       -DCMAKE_SYSTEM_PROCESSOR=x86_64 \
+       -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+       -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+       -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres \
+       -DCMAKE_FIND_ROOT_PATH=/usr/x86_64-w64-mingw32 \
+       -DBUILD_WINDOWS=ON \
+    && make -j$(nproc)
+
+WORKDIR /project/parser
+ENTRYPOINT ["./build/bin/parser"]
