@@ -2,6 +2,10 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# ---------- 换用阿里云镜像源 ----------
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list \
+    && sed -i 's|http://security.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
+
 # ---------- 基础工具 + Linux 构建依赖 ----------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
