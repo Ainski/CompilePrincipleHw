@@ -16,6 +16,8 @@ struct Symbol {
     bool is_assigned;
     int scope_level;
     int line;
+    bool has_immutable_ref = false;
+    bool has_mutable_ref = false;
 
     Symbol(string n, STypePtr t, bool mut, int scope, int ln = 0)
         : name(move(n)), type(t), is_mutable(mut),

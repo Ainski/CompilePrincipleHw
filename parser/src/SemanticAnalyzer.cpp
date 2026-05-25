@@ -262,20 +262,17 @@ void SemanticAnalyzer::visitLetStmt(const Node* node) {
     STypePtr initType = SType::makeUnknown();
 
     if (hasInit) {
-        // Find the Expr child
+        // Find the Expr child (skip Let/VarDecl/leaf tokens)
         for (auto& c : node->children) {
-            if (c->label != "LetStmt" && c->label != "VarDecl" && !c->isLeaf &&
-                c->label != "EmptyStmt") {
-                // This should be the expression
-                if (c->label.find("Expr") != string::npos || c->label == "Literal" ||
-                    c->label == "Identifier" || c->label == "CallExpr" ||
-                    c->label == "ArrayLit" || c->label == "ParenExpr" ||
-                    c->label == "RefExpr" || c->label == "DerefExpr" ||
-                    c->label == "IndexExpr" || c->label == "RangeExpr") {
-                    initType = visitExpr(c.get());
-                    break;
-                }
+            if (!c->isLeaf && c->label != "VarDecl") {
+                initType = visitExpr(c.get());
+                break;
             }
+        }
+
+        // Check: void function cannot be used as rvalue
+        if (initType->isVoid()) {
+            error("cannot use void expression as initializer", line);
         }
 
         if (varType->isUnknown()) {
@@ -637,11 +634,27 @@ STypePtr SemanticAnalyzer::visitRefExpr(const Node* node) {
     auto innerType = visitExpr(innerExpr);
 
     // Check that the referenced variable is mutable if creating mutable ref
-    if (is_mut && innerExpr->label == "Identifier") {
+    if (innerExpr->label == "Identifier") {
         string name = extractId(innerExpr);
         auto sym = symtab.lookup(name);
-        if (sym && !sym->is_mutable) {
+        if (is_mut && sym && !sym->is_mutable) {
             error("cannot create mutable reference to immutable variable '" + name + "'", line);
+        }
+        // Borrow tracking: mutable ref cannot coexist with other refs
+        if (sym) {
+            if (is_mut) {
+                if (sym->has_immutable_ref || sym->has_mutable_ref) {
+                    error("cannot create mutable reference to '" + name +
+                          "': other references already exist", line);
+                }
+                sym->has_mutable_ref = true;
+            } else {
+                if (sym->has_mutable_ref) {
+                    error("cannot create immutable reference to '" + name +
+                          "': mutable reference already exists", line);
+                }
+                sym->has_immutable_ref = true;
+            }
         }
     }
 
