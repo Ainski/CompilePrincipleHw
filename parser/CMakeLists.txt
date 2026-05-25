@@ -38,6 +38,10 @@ set(PROJECT_SOURCES
     ${PROJECT_SOURCE_DIR}/src/main.cpp
     ${PROJECT_SOURCE_DIR}/src/TokenStream.cpp
     ${PROJECT_SOURCE_DIR}/src/Type.cpp
+    ${PROJECT_SOURCE_DIR}/src/SemanticType.cpp
+    ${PROJECT_SOURCE_DIR}/src/Symbol.cpp
+    ${PROJECT_SOURCE_DIR}/src/SemanticAnalyzer.cpp
+    ${PROJECT_SOURCE_DIR}/src/IRGenerator.cpp
     ${PROJECT_SOURCE_DIR}/src/lex.yy.cpp  # flex 生成的文件（需要先运行 flex）
 )
 

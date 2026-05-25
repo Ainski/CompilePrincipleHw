@@ -2,7 +2,11 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# ---------- 基础工具 + Linux 构建依赖 ----------
+# ---------- 换用清华镜像源 ----------
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list \
+    && sed -i 's|http://security.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
+
+# ---------- 基础工具 + 构建依赖（此层很少变化，会被缓存）----------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
@@ -13,11 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zip \
     unzip \
     ca-certificates \
-    \
-    `# mingw-w64 交叉编译` \
     mingw-w64 \
-    \
-    `# glfw3 Linux 构建依赖` \
     pkg-config \
     mesa-common-dev \
     libglu1-mesa-dev \
@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxxf86vm-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------- vcpkg + glfw3 ----------
+# ---------- vcpkg + glfw3（此层很少变化，会被缓存）----------
 ENV VCPKG_ROOT=/opt/vcpkg
 RUN git clone https://github.com/microsoft/vcpkg.git ${VCPKG_ROOT} --depth 1 \
     && ${VCPKG_ROOT}/bootstrap-vcpkg.sh \
@@ -36,7 +36,7 @@ RUN git clone https://github.com/microsoft/vcpkg.git ${VCPKG_ROOT} --depth 1 \
     && rm -rf ${VCPKG_ROOT}/buildtrees ${VCPKG_ROOT}/downloads ${VCPKG_ROOT}/packages
 ENV PATH="${VCPKG_ROOT}:${PATH}"
 
-# ---------- 项目构建 ----------
+# ---------- 项目构建（此层经常变化）----------
 WORKDIR /project
 COPY . .
 
@@ -47,7 +47,7 @@ RUN cd parser/src && flex -o lex.yy.cpp lexer.l
 RUN cd /project/parser && mkdir -p build && cd build \
     && cmake .. && make -j$(nproc)
 
-# 构建 Windows 版本（直接内联交叉编译参数，不依赖工具链文件）
+# 构建 Windows 版本
 RUN cd /project/parser && mkdir -p build-win && cd build-win \
     && cmake .. \
        -DCMAKE_SYSTEM_NAME=Windows \
