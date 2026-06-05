@@ -1,0 +1,30 @@
+# Shell scripts — 强制使用 LF，否则 Docker/Linux 下无法执行
+*.sh text eol=lf
+
+# Docker 相关文件 — 强制 LF
+Dockerfile text eol=lf
+Dockerfile.dev text eol=lf
+.dockerignore text eol=lf
+
+# Makefile — 强制 LF（tab 缩进敏感）
+Makefile text eol=lf
+
+# 脚本类文件 — 强制 LF
+*.bash text eol=lf
+*.zsh text eol=lf
+*.fish text eol=lf
+
+# 配置文件（Unix 风格） — 强制 LF
+.gitattributes text eol=lf
+.gitignore text eol=lf
+*.env text eol=lf
+*.env.* text eol=lf
+
+# CMake — 强制 LF
+CMakeLists.txt text eol=lf
+*.cmake text eol=lf
+
+# Windows 批处理 — 强制 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

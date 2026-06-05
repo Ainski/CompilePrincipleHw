@@ -1,0 +1,479 @@
+<Program>
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: main
+      LParen: (
+      <ParamList>
+      RParen: )
+      Arrow: ->
+      <Type>
+        I32: i32
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Mut: mut
+          Identifier: x
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <Literal>
+          IntegerConstant: 10
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: y
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <Literal>
+          IntegerConstant: 20
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: z
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <Literal>
+          IntegerConstant: 30
+        Semicolon: ;
+      <IfStmt>
+        If: if
+        <CmpExpr>
+          <Identifier>
+            Identifier: x
+          Greater: >
+          <Identifier>
+            Identifier: y
+        <Block>
+          LBrace: {
+          <AssignStmt>
+            <Identifier>
+              Identifier: x
+            Assign: =
+            <AddExpr>
+              <Identifier>
+                Identifier: x
+              Plus: +
+              <Literal>
+                IntegerConstant: 1
+            Semicolon: ;
+          RBrace: }
+        <ElseClause>
+          Else: else
+          <IfStmt>
+            If: if
+            <CmpExpr>
+              <Identifier>
+                Identifier: x
+              Less: <
+              <Identifier>
+                Identifier: y
+            <Block>
+              LBrace: {
+              <AssignStmt>
+                <Identifier>
+                  Identifier: x
+                Assign: =
+                <AddExpr>
+                  <Identifier>
+                    Identifier: x
+                  Minus: -
+                  <Literal>
+                    IntegerConstant: 1
+                Semicolon: ;
+              RBrace: }
+            <ElseClause>
+              Else: else
+              <Block>
+                LBrace: {
+                <AssignStmt>
+                  <Identifier>
+                    Identifier: x
+                  Assign: =
+                  <Literal>
+                    IntegerConstant: 0
+                  Semicolon: ;
+                RBrace: }
+      <WhileStmt>
+        While: while
+        <CmpExpr>
+          <Identifier>
+            Identifier: x
+          Less: <
+          <Literal>
+            IntegerConstant: 15
+        <Block>
+          LBrace: {
+          <AssignStmt>
+            <Identifier>
+              Identifier: x
+            Assign: =
+            <AddExpr>
+              <Identifier>
+                Identifier: x
+              Plus: +
+              <Literal>
+                IntegerConstant: 1
+            Semicolon: ;
+          RBrace: }
+      <ForStmt>
+        For: for
+        Identifier: i
+        In: in
+        <RangeExpr>
+          <Literal>
+            IntegerConstant: 0
+          DotDot: ..
+          <Literal>
+            IntegerConstant: 10
+        <Block>
+          LBrace: {
+          <IfStmt>
+            If: if
+            <CmpExpr>
+              <Identifier>
+                Identifier: i
+              EqualEqual: ==
+              <Literal>
+                IntegerConstant: 5
+            <Block>
+              LBrace: {
+              <BreakStmt>
+                Break: break
+                Semicolon: ;
+              RBrace: }
+          <ContinueStmt>
+            Continue: continue
+            Semicolon: ;
+          RBrace: }
+      <LoopStmt>
+        Loop: loop
+        <Block>
+          LBrace: {
+          <AssignStmt>
+            <Identifier>
+              Identifier: x
+            Assign: =
+            <AddExpr>
+              <Identifier>
+                Identifier: x
+              Plus: +
+              <Literal>
+                IntegerConstant: 1
+            Semicolon: ;
+          <IfStmt>
+            If: if
+            <CmpExpr>
+              <Identifier>
+                Identifier: x
+              GreaterEqual: >=
+              <Literal>
+                IntegerConstant: 20
+            <Block>
+              LBrace: {
+              <BreakStmt>
+                Break: break
+                Semicolon: ;
+              RBrace: }
+          RBrace: }
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <AddExpr>
+          <Identifier>
+            Identifier: x
+          Plus: +
+          <Identifier>
+            Identifier: y
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: b
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <AddExpr>
+          <Identifier>
+            Identifier: x
+          Minus: -
+          <Identifier>
+            Identifier: y
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: c
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <MulExpr>
+          <Identifier>
+            Identifier: x
+          Star: *
+          <Identifier>
+            Identifier: y
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: d
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <MulExpr>
+          <Identifier>
+            Identifier: x
+          Slash: /
+          <Identifier>
+            Identifier: y
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: e
+          Colon: :
+          <Type>
+            Identifier: bool
+        Assign: =
+        <CmpExpr>
+          <Identifier>
+            Identifier: x
+          EqualEqual: ==
+          <Identifier>
+            Identifier: y
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: f
+          Colon: :
+          <Type>
+            Identifier: bool
+        Assign: =
+        <CmpExpr>
+          <Identifier>
+            Identifier: x
+          NotEqual: !=
+          <Identifier>
+            Identifier: y
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: g
+          Colon: :
+          <Type>
+            Identifier: bool
+        Assign: =
+        <CmpExpr>
+          <Identifier>
+            Identifier: x
+          GreaterEqual: >=
+          <Identifier>
+            Identifier: y
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: h
+          Colon: :
+          <Type>
+            Identifier: bool
+        Assign: =
+        <CmpExpr>
+          <Identifier>
+            Identifier: x
+          LessEqual: <=
+          <Identifier>
+            Identifier: y
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: arr
+          Colon: :
+          <Type>
+            LBracket: [
+            <Type>
+              I32: i32
+            Semicolon: ;
+            IntegerConstant: 3
+            RBracket: ]
+        Assign: =
+        <ArrayLit>
+          LBracket: [
+          <Literal>
+            IntegerConstant: 1
+          Comma: ,
+          <Literal>
+            IntegerConstant: 2
+          Comma: ,
+          <Literal>
+            IntegerConstant: 3
+          RBracket: ]
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: val
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <IndexExpr>
+          Identifier: arr
+          LBracket: [
+          <Literal>
+            IntegerConstant: 0
+          RBracket: ]
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: result
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <CallExpr>
+          Identifier: add
+          LParen: (
+          <ArgList>
+            <Identifier>
+              Identifier: x
+            Comma: ,
+            <Identifier>
+              Identifier: y
+          RParen: )
+        Semicolon: ;
+      <ReturnStmt>
+        Return: return
+        <Identifier>
+          Identifier: result
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: add
+      LParen: (
+      <ParamList>
+        <Param>
+          Identifier: a
+          Colon: :
+          <Type>
+            I32: i32
+        Comma: ,
+        <Param>
+          Identifier: b
+          Colon: :
+          <Type>
+            I32: i32
+      RParen: )
+      Arrow: ->
+      <Type>
+        I32: i32
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: sum
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <AddExpr>
+          <Identifier>
+            Identifier: a
+          Plus: +
+          <Identifier>
+            Identifier: b
+        Semicolon: ;
+      <ReturnStmt>
+        Return: return
+        <Identifier>
+          Identifier: sum
+        Semicolon: ;
+      RBrace: }
+  <Function>
+    <FuncHeader>
+      Fn: fn
+      Identifier: test_special
+      LParen: (
+      <ParamList>
+      RParen: )
+      Arrow: ->
+      <Type>
+        I32: i32
+    <Block>
+      LBrace: {
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: x
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <Literal>
+          IntegerConstant: 100
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: y
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <Identifier>
+          Identifier: x
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: z
+          Colon: :
+          <Type>
+            I32: i32
+        Assign: =
+        <Identifier>
+          Identifier: y
+        Semicolon: ;
+      <LetStmt>
+        Let: let
+        <VarDecl>
+          Identifier: range
+        Assign: =
+        <RangeExpr>
+          <Literal>
+            IntegerConstant: 0
+          DotDot: ..
+          <Literal>
+            IntegerConstant: 100
+        Semicolon: ;
+      <ReturnStmt>
+        Return: return
+        <Identifier>
+          Identifier: x
+        Semicolon: ;
+      RBrace: }

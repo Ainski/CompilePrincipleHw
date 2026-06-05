@@ -118,7 +118,7 @@ $RECYCLE.BIN/
 .env.local
 .env.*.local
 
-# ==================== LaTeX 中间文件 ====================
+# ==================== LaTeX 中间文件（全局） ====================
 *.aux
 *.fdb_latexmk
 *.fls
@@ -126,6 +126,19 @@ $RECYCLE.BIN/
 *.toc
 *.xdv
 *.out
+
+# ==================== docs/report — 仅保留 tex / pdf / 图片 ====================
+# 忽略 docs/report/ 下所有内容，然后白名单放行 tex、pdf、图片、figures 子目录
+docs/report/*
+!docs/report/*.tex
+!docs/report/*.pdf
+!docs/report/*.png
+!docs/report/*.jpg
+!docs/report/*.jpeg
+!docs/report/*.svg
+!docs/report/*.gif
+!docs/report/*.bmp
+!docs/report/figures/
 
 # ==================== Python/uv 相关 ====================
 .venv/
