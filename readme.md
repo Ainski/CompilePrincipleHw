@@ -181,10 +181,15 @@ cd parser && bash testfiles/semantic_tests.sh
 │   ├── assignment2.md      # 大作业2 需求说明（语义分析+中间代码）
 │   ├── promised_lex_output.md  # 词法分析器输出格式规范
 │   ├── References.md       # 参考资料列表
-│   └── report/
-│       ├── report.tex      # 报告 LaTeX 源文件
-│       ├── report.pdf      # 报告 PDF
-│       └── figures/        # 报告插图
+│   ├── report1/             # 大作业1 报告（词法+语法分析）
+│   │   ├── report.tex       # 报告 LaTeX 源文件
+│   │   ├── report.pdf       # 报告 PDF
+│   │   ├── figure_prompts.md
+│   │   └── figures/         # 报告插图
+│   └── report2/             # 大作业2 报告（语义分析+中间代码）
+│       ├── report2.tex      # 报告 LaTeX 源文件
+│       ├── report2.pdf      # 报告 PDF
+│       └── screenshot0XX.png # 运行截图
 └── parser/
     ├── CMakeLists.txt      # CMake 构建配置
     ├── include/            # 头文件
@@ -224,4 +229,5 @@ cd parser && bash testfiles/semantic_tests.sh
 - [大作业2 需求说明](docs/assignment2.md) — 语义分析规则、中间代码生成要求
 - [词法分析器输出规范](docs/promised_lex_output.md) — 词法单元的类型、种别、值的完整定义
 - [参考资料](docs/References.md) — 开发过程中参考的文献与资源
-- [设计报告](docs/report/report.pdf) — 完整的设计与说明文档
+- [设计报告（大作业1）](docs/report1/report.pdf) — 词法分析与语法分析
+- [设计报告（大作业2）](docs/report2/report2.pdf) — 语义分析与中间代码生成
