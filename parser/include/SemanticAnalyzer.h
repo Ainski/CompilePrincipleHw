@@ -3,6 +3,7 @@
 
 #include "parser.h"
 #include "Symbol.h"
+#include "IR.h"   // IROp, Quadruple（作业3 a' 嫁接合并：语义分析同时生成 IR）
 #include <vector>
 #include <string>
 #include <memory>
@@ -23,6 +24,26 @@ class SemanticAnalyzer {
     vector<SemanticError> errors;
     shared_ptr<FunctionInfo> current_function;
     int in_loop = 0;
+
+    // ---- IR 生成基础设施（作业3 a' 嫁接合并）----
+    vector<Quadruple> code;
+    int temp_counter = 0;
+    int label_counter = 0;
+    string break_label;
+    string continue_label;
+    unordered_map<const Node*, string> node_ir_temp;  // 表达式节点的求值结果（临时变量/字面量/变量名）
+    bool emit_enabled = true;   // false 时 emit 不产出（抑制赋值左值的无谓求值，对齐 IRGenerator 行为）
+
+    string newTemp() {
+        // 抑制 emit（赋值左值求值）时不占用编号——对齐 IRGenerator 不对 lhs 求值
+        if (!emit_enabled) return "";
+        return "t" + to_string(temp_counter++);
+    }
+    string newLabel() { return "L" + to_string(label_counter++); }
+    void emit(IROp op, const string& a1 = "", const string& a2 = "", const string& r = "") {
+        if (!emit_enabled) return;
+        code.emplace_back(op, a1, a2, r);
+    }
 
     void error(const string& msg, int line);
 
@@ -76,6 +97,11 @@ public:
     bool hasErrors() const { return !errors.empty(); }
     const vector<SemanticError>& getErrors() const { return errors; }
     void printErrors(ostream& os = cout) const;
+
+    // IR 输出（作业3 a'）
+    const vector<Quadruple>& getIR() const { return code; }
+    void printIR(ostream& os = cout) const;
+    void writeIR(const string& filename) const;
 };
 
 #endif

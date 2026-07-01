@@ -1,4 +1,5 @@
 #include "../include/SemanticAnalyzer.h"
+#include <fstream>
 
 // ============================================================
 //  Helpers
@@ -11,6 +12,27 @@ void SemanticAnalyzer::error(const string& msg, int line) {
 void SemanticAnalyzer::printErrors(ostream& os) const {
     for (auto& e : errors)
         os << "Error: " << e.message << " at line " << e.line << "\n";
+}
+
+// ============================================================
+//  IR 输出（作业3 a' 嫁接合并）
+// ============================================================
+
+void SemanticAnalyzer::printIR(ostream& os) const {
+    int idx = 0;
+    for (auto& q : code) {
+        os << idx++ << ": " << q.toString() << "\n";
+    }
+}
+
+void SemanticAnalyzer::writeIR(const string& filename) const {
+    ofstream ofs(filename);
+    if (!ofs.is_open()) {
+        cerr << "Error: Cannot open IR output file: " << filename << "\n";
+        return;
+    }
+    printIR(ofs);
+    ofs.close();
 }
 
 string SemanticAnalyzer::extractId(const Node* node) const {
@@ -204,16 +226,26 @@ void SemanticAnalyzer::visitFunction(const Node* node) {
     if (it == functions.end()) return;
     current_function = it->second;
 
+    // IR: 函数开始
+    emit(IROp::FUNC_BEGIN, funcName);
+
     symtab.enterScope();
     for (auto& [pname, ptype] : current_function->params) {
         auto sym = make_shared<Symbol>(pname, ptype, true, symtab.scopeLevel(), extractLine(header));
         sym->is_assigned = true;
         symtab.insert(sym);
+        // IR: 形参赋值
+        emit(IROp::ASSIGN, "param_" + pname, "", pname);
     }
 
     if (block) visitBlock(block);
 
     symtab.exitScope();
+
+    // IR: 函数结束标签 + 结束标记
+    emit(IROp::LABEL, "func_" + funcName + "_end");
+    emit(IROp::FUNC_END, funcName);
+
     current_function = nullptr;
 }
 
@@ -272,6 +304,9 @@ void SemanticAnalyzer::visitLetStmt(const Node* node) {
         for (auto& c : node->children) {
             if (!c->isLeaf && c->label != "VarDecl") {
                 initType = visitExpr(c.get());
+                // IR: 声明时赋值（对齐 genLetStmt，结果与变量名不同才 emit）
+                string r = node_ir_temp[c.get()];
+                if (!r.empty() && r != varName) emit(IROp::ASSIGN, r, "", varName);
                 break;
             }
         }
@@ -316,10 +351,10 @@ void SemanticAnalyzer::visitAssignStmt(const Node* node) {
 
     auto* lhsNode = node->children[0].get();
 
-    // Check LHS is declared and valid lvalue (but NOT "used before assignment")
+    // LHS 检查（抑制 IR emit：对齐 genAssignStmt 不对 lhs 整体求值，避免多余的 INDEX_LOAD/DEREF）
+    emit_enabled = false;
     checkLvalue(lhsNode, line);
 
-    // Check mutability before evaluating LHS type
     STypePtr lhsType;
     if (lhsNode->label == "Identifier") {
         string name = extractId(lhsNode);
@@ -334,16 +369,40 @@ void SemanticAnalyzer::visitAssignStmt(const Node* node) {
             }
         }
     } else {
-        lhsType = visitExpr(lhsNode);
+        lhsType = visitExpr(lhsNode);   // 仅取类型，emit 已抑制
     }
+    emit_enabled = true;
 
-    // RHS
-    auto rhsType = visitExpr(node->children[assignIdx + 1].get());
+    // RHS（恢复 emit，求值右值）
+    auto* rhsNode = node->children[assignIdx + 1].get();
+    auto rhsType = visitExpr(rhsNode);
+    string rhs = node_ir_temp[rhsNode];
 
     // Type check
     if (lhsType && !lhsType->isUnknown() && !rhsType->isUnknown() && !lhsType->equals(rhsType)) {
         error("type mismatch in assignment: " + lhsType->toString() +
               " vs " + rhsType->toString(), line);
+    }
+
+    // IR: 赋值存储（对齐 genAssignStmt，按 lhs 形态 emit）
+    if (lhsNode->label == "Identifier") {
+        string name = extractId(lhsNode);
+        if (rhs != name) emit(IROp::ASSIGN, rhs, "", name);
+    } else if (lhsNode->label == "IndexExpr") {
+        string arrName = extractId(lhsNode);
+        for (auto& c : lhsNode->children) {
+            if (!c->isLeaf && c->label != "IndexExpr") {
+                visitExpr(c.get());  // 求值索引（emit）
+                emit(IROp::INDEX_STORE, rhs, node_ir_temp[c.get()], arrName);
+                break;
+            }
+        }
+    } else if (lhsNode->label == "DerefExpr") {
+        const Node* ptrNode = lhsNode->children.size() > 1 ? lhsNode->children[1].get() : nullptr;
+        if (ptrNode) {
+            visitExpr(ptrNode);  // 求值指针（emit）
+            emit(IROp::DEREF, rhs, "", node_ir_temp[ptrNode]);
+        }
     }
 
     // Mark LHS as assigned
@@ -358,12 +417,22 @@ void SemanticAnalyzer::visitReturnStmt(const Node* node) {
     // ReturnStmt: Return, [Expr], Semicolon
     int line = extractLine(node);
     STypePtr retType = SType::makeVoid();
+    const Node* retNode = nullptr;
 
     for (auto& c : node->children) {
         if (!c->isLeaf && c->label != "ReturnStmt") {
             retType = visitExpr(c.get());
+            retNode = c.get();
             break;
         }
+    }
+
+    // IR: 返回（对齐 genReturnStmt：有值 emit RETURN val；无值 emit RETURN + 跳函数结束）
+    if (retNode) {
+        emit(IROp::RETURN, node_ir_temp[retNode]);
+    } else {
+        emit(IROp::RETURN);
+        if (current_function) emit(IROp::JUMP, "func_" + current_function->name + "_end");
     }
 
     if (current_function) {
@@ -386,21 +455,29 @@ void SemanticAnalyzer::visitReturnStmt(const Node* node) {
 void SemanticAnalyzer::visitIfStmt(const Node* node) {
     // IfStmt: If, Expr, Block, [ElseClause]
     int line = extractLine(node);
+    (void)line;
+
+    // IR: 分配 else/end 标签（对齐 genIfStmt）
+    string elseLabel = newLabel();
+    string endLabel = newLabel();
 
     // Condition expression
     for (auto& c : node->children) {
         if (!c->isLeaf && c->label != "IfStmt" && c->label != "Block" &&
             c->label != "ElseClause") {
             visitExpr(c.get());
+            emit(IROp::JZ, node_ir_temp[c.get()], elseLabel);  // IR
             break;
         }
     }
 
     // Then block
     auto blocks = findChildren(node, "Block");
-    for (auto* b : blocks) visitBlock(b);
+    if (!blocks.empty()) visitBlock(blocks[0]);
+    emit(IROp::JUMP, endLabel);  // IR
 
-    // Else clause
+    // Else label + else clause
+    emit(IROp::LABEL, elseLabel);  // IR
     auto* elseClause = findChild(node, "ElseClause");
     if (elseClause) {
         for (auto& c : elseClause->children) {
@@ -410,22 +487,41 @@ void SemanticAnalyzer::visitIfStmt(const Node* node) {
             }
         }
     }
+
+    emit(IROp::LABEL, endLabel);  // IR
 }
 
 void SemanticAnalyzer::visitWhileStmt(const Node* node) {
     // WhileStmt: While, Expr, Block
+    string startLabel = newLabel();
+    string endLabel = newLabel();
+
+    emit(IROp::LABEL, startLabel);  // IR
+
     for (auto& c : node->children) {
         if (!c->isLeaf && c->label != "WhileStmt" && c->label != "Block") {
             visitExpr(c.get());
+            emit(IROp::JZ, node_ir_temp[c.get()], endLabel);  // IR
             break;
         }
     }
+
+    string oldBreak = break_label, oldContinue = continue_label;  // IR
+    break_label = endLabel;
+    continue_label = startLabel;
+
     auto* block = findChild(node, "Block");
     if (block) {
         in_loop++;
         visitBlock(block);
         in_loop--;
     }
+
+    emit(IROp::JUMP, startLabel);  // IR
+    emit(IROp::LABEL, endLabel);   // IR
+
+    break_label = oldBreak;
+    continue_label = oldContinue;
 }
 
 void SemanticAnalyzer::visitForStmt(const Node* node) {
@@ -450,15 +546,35 @@ void SemanticAnalyzer::visitForStmt(const Node* node) {
         }
     }
 
+    // IR: 循环标签（对齐 genForStmt）
+    string startLabel = newLabel();
+    string endLabel = newLabel();
+    string stepLabel = newLabel();
+    emit(IROp::LABEL, startLabel);
+
     // Range expression
+    const Node* rangeNode = nullptr;
     for (auto& c : node->children) {
-        if (c->label == "RangeExpr" || (!c->isLeaf &&
-            c->label != "ForStmt" && c->label != "Block" &&
-            !isLeafCat(c.get(), "Identifier") && !isLeafCat(c.get(), "For") &&
-            !isLeafCat(c.get(), "Mut") && !isLeafCat(c.get(), "In"))) {
-            auto rangeType = visitExpr(c.get());
-            // Range bounds should be integer type
-            break;
+        if (c->label == "RangeExpr") { rangeNode = c.get(); break; }
+    }
+    if (rangeNode && rangeNode->children.size() >= 3) {
+        visitExpr(rangeNode->children[0].get());          // 左端求值（emit + 类型）
+        visitExpr(rangeNode->children[2].get());          // 右端求值
+        string endTemp = node_ir_temp[rangeNode->children[2].get()];
+        if (!endTemp.empty()) {
+            string condTemp = newTemp();
+            emit(IROp::LT, varName, endTemp, condTemp);
+            emit(IROp::JZ, condTemp, endLabel);
+        }
+    } else {
+        // 回退：非 RangeExpr 的范围表达式
+        for (auto& c : node->children) {
+            if (!c->isLeaf && c->label != "ForStmt" && c->label != "Block" &&
+                !isLeafCat(c.get(), "Identifier") && !isLeafCat(c.get(), "For") &&
+                !isLeafCat(c.get(), "Mut") && !isLeafCat(c.get(), "In")) {
+                visitExpr(c.get());
+                break;
+            }
         }
     }
 
@@ -468,6 +584,11 @@ void SemanticAnalyzer::visitForStmt(const Node* node) {
     symtab.enterScope();
     symtab.insert(sym);
 
+    // IR: break/continue 指向
+    string oldBreak = break_label, oldContinue = continue_label;
+    break_label = endLabel;
+    continue_label = stepLabel;
+
     auto* block = findChild(node, "Block");
     if (block) {
         in_loop++;
@@ -476,15 +597,39 @@ void SemanticAnalyzer::visitForStmt(const Node* node) {
     }
 
     symtab.exitScope();
+
+    // IR: 步进 + 自增 + 跳回 + 结束标签
+    emit(IROp::LABEL, stepLabel);
+    emit(IROp::ADD, varName, "1", varName);
+    emit(IROp::JUMP, startLabel);
+    emit(IROp::LABEL, endLabel);
+
+    break_label = oldBreak;
+    continue_label = oldContinue;
 }
 
 void SemanticAnalyzer::visitLoopStmt(const Node* node) {
+    string startLabel = newLabel();
+    string endLabel = newLabel();
+
+    emit(IROp::LABEL, startLabel);  // IR
+
+    string oldBreak = break_label, oldContinue = continue_label;  // IR
+    break_label = endLabel;
+    continue_label = startLabel;
+
     auto* block = findChild(node, "Block");
     if (block) {
         in_loop++;
         visitBlock(block);
         in_loop--;
     }
+
+    emit(IROp::JUMP, startLabel);  // IR
+    emit(IROp::LABEL, endLabel);   // IR
+
+    break_label = oldBreak;
+    continue_label = oldContinue;
 }
 
 void SemanticAnalyzer::visitBreakStmt(const Node* node) {
@@ -499,6 +644,8 @@ void SemanticAnalyzer::visitBreakStmt(const Node* node) {
             break;
         }
     }
+    // IR: 跳到循环结束
+    if (!break_label.empty()) emit(IROp::JUMP, break_label);
 }
 
 void SemanticAnalyzer::visitContinueStmt(const Node* node) {
@@ -506,6 +653,8 @@ void SemanticAnalyzer::visitContinueStmt(const Node* node) {
     if (in_loop <= 0) {
         error("continue statement must be inside a loop", line);
     }
+    // IR: 跳到循环开始
+    if (!continue_label.empty()) emit(IROp::JUMP, continue_label);
 }
 
 void SemanticAnalyzer::visitExprStmt(const Node* node) {
@@ -550,7 +699,10 @@ STypePtr SemanticAnalyzer::visitLiteral(const Node* node) {
     // Literal has one child: "IntegerConstant: 42" or similar
     if (node->children.empty()) return SType::makeUnknown();
     auto cat = leafCategory(node->children[0].get());
-    if (cat == "IntegerConstant") return SType::makeI32();
+    if (cat == "IntegerConstant") {
+        node_ir_temp[node] = extractLeafValue(node->children[0].get());  // IR
+        return SType::makeI32();
+    }
     return SType::makeUnknown();
 }
 
@@ -559,70 +711,150 @@ STypePtr SemanticAnalyzer::visitCmpExpr(const Node* node) {
     int line = extractLine(node);
     auto& ch = node->children;
 
-    // Find the two expression children and the operator
     vector<const Node*> exprs;
+    vector<string> ops;
     for (auto& c : ch) {
         if (!c->isLeaf) exprs.push_back(c.get());
+        else {
+            auto val = extractLeafValue(c.get());
+            if (!val.empty() && val != "(" && val != ")" && val != "[" && val != "]")
+                ops.push_back(val);
+        }
     }
 
     if (exprs.size() < 2) {
-        if (exprs.size() == 1) return visitExpr(exprs[0]);
+        if (exprs.size() == 1) {
+            auto t = visitExpr(exprs[0]);
+            node_ir_temp[node] = node_ir_temp[exprs[0]];
+            return t;
+        }
+        node_ir_temp[node] = "";
         return SType::makeUnknown();
     }
 
     auto lt = visitExpr(exprs[0]);
-    auto rt = visitExpr(exprs[1]);
+    string left = node_ir_temp[exprs[0]];
 
-    if (!lt->isUnknown() && !rt->isUnknown() && !lt->equals(rt)) {
-        error("comparison operands must have same type: " +
-              lt->toString() + " vs " + rt->toString(), line);
+    for (size_t i = 0; i < ops.size() && i + 1 < exprs.size(); i++) {
+        auto rt = visitExpr(exprs[i + 1]);
+        string right = node_ir_temp[exprs[i + 1]];
+
+        if (!lt->isUnknown() && !rt->isUnknown() && !lt->equals(rt)) {
+            error("comparison operands must have same type: " +
+                  lt->toString() + " vs " + rt->toString(), line);
+        }
+
+        // IR: 比较运算
+        IROp op = IROp::NOP;
+        if (ops[i] == "==") op = IROp::EQ;
+        else if (ops[i] == "!=") op = IROp::NE;
+        else if (ops[i] == "<") op = IROp::LT;
+        else if (ops[i] == "<=") op = IROp::LE;
+        else if (ops[i] == ">") op = IROp::GT;
+        else if (ops[i] == ">=") op = IROp::GE;
+        string result = newTemp();
+        emit(op, left, right, result);
+        left = result;
     }
 
+    node_ir_temp[node] = left;
     return SType::makeBool();
 }
 
 STypePtr SemanticAnalyzer::visitAddExpr(const Node* node) {
+    int line = extractLine(node);
     auto& ch = node->children;
     vector<const Node*> exprs;
-    for (auto& c : ch)
+    vector<string> ops;
+    for (auto& c : ch) {
         if (!c->isLeaf) exprs.push_back(c.get());
+        else {
+            auto val = extractLeafValue(c.get());
+            if (!val.empty() && val != "(" && val != ")" && val != "[" && val != "]")
+                ops.push_back(val);
+        }
+    }
 
     if (exprs.size() < 2) {
-        return exprs.size() == 1 ? visitExpr(exprs[0]) : SType::makeUnknown();
+        if (exprs.size() == 1) {
+            auto t = visitExpr(exprs[0]);
+            node_ir_temp[node] = node_ir_temp[exprs[0]];
+            return t;
+        }
+        node_ir_temp[node] = "";
+        return SType::makeUnknown();
     }
 
     auto lt = visitExpr(exprs[0]);
-    auto rt = visitExpr(exprs[1]);
-    int line = extractLine(node);
+    string left = node_ir_temp[exprs[0]];
+    STypePtr rt;
 
-    if (!lt->isUnknown() && !rt->isUnknown() && !lt->equals(rt)) {
-        error("arithmetic operands must have same type: " +
-              lt->toString() + " vs " + rt->toString(), line);
+    for (size_t i = 0; i < ops.size() && i + 1 < exprs.size(); i++) {
+        rt = visitExpr(exprs[i + 1]);
+        string right = node_ir_temp[exprs[i + 1]];
+
+        if (!lt->isUnknown() && !rt->isUnknown() && !lt->equals(rt)) {
+            error("arithmetic operands must have same type: " +
+                  lt->toString() + " vs " + rt->toString(), line);
+        }
+
+        // IR: 加减运算
+        IROp op = (ops[i] == "+") ? IROp::ADD : IROp::SUB;
+        string result = newTemp();
+        emit(op, left, right, result);
+        left = result;
     }
 
-    return lt->isUnknown() ? rt : lt;
+    node_ir_temp[node] = left;
+    return lt->isUnknown() ? (rt ? rt : lt) : lt;
 }
 
 STypePtr SemanticAnalyzer::visitMulExpr(const Node* node) {
+    int line = extractLine(node);
     auto& ch = node->children;
     vector<const Node*> exprs;
-    for (auto& c : ch)
+    vector<string> ops;
+    for (auto& c : ch) {
         if (!c->isLeaf) exprs.push_back(c.get());
+        else {
+            auto val = extractLeafValue(c.get());
+            if (!val.empty() && val != "(" && val != ")" && val != "[" && val != "]")
+                ops.push_back(val);
+        }
+    }
 
     if (exprs.size() < 2) {
-        return exprs.size() == 1 ? visitExpr(exprs[0]) : SType::makeUnknown();
+        if (exprs.size() == 1) {
+            auto t = visitExpr(exprs[0]);
+            node_ir_temp[node] = node_ir_temp[exprs[0]];
+            return t;
+        }
+        node_ir_temp[node] = "";
+        return SType::makeUnknown();
     }
 
     auto lt = visitExpr(exprs[0]);
-    auto rt = visitExpr(exprs[1]);
-    int line = extractLine(node);
+    string left = node_ir_temp[exprs[0]];
+    STypePtr rt;
 
-    if (!lt->isUnknown() && !rt->isUnknown() && !lt->equals(rt)) {
-        error("arithmetic operands must have same type: " +
-              lt->toString() + " vs " + rt->toString(), line);
+    for (size_t i = 0; i < ops.size() && i + 1 < exprs.size(); i++) {
+        rt = visitExpr(exprs[i + 1]);
+        string right = node_ir_temp[exprs[i + 1]];
+
+        if (!lt->isUnknown() && !rt->isUnknown() && !lt->equals(rt)) {
+            error("arithmetic operands must have same type: " +
+                  lt->toString() + " vs " + rt->toString(), line);
+        }
+
+        // IR: 乘除运算
+        IROp op = (ops[i] == "*") ? IROp::MUL : IROp::DIV;
+        string result = newTemp();
+        emit(op, left, right, result);
+        left = result;
     }
 
-    return lt->isUnknown() ? rt : lt;
+    node_ir_temp[node] = left;
+    return lt->isUnknown() ? (rt ? rt : lt) : lt;
 }
 
 STypePtr SemanticAnalyzer::visitRefExpr(const Node* node) {
@@ -638,6 +870,13 @@ STypePtr SemanticAnalyzer::visitRefExpr(const Node* node) {
     if (!innerExpr) return SType::makeUnknown();
 
     auto innerType = visitExpr(innerExpr);
+
+    // IR: 创建引用 REF inner, _, result
+    {
+        string result = newTemp();
+        emit(IROp::REF, node_ir_temp[innerExpr], "", result);
+        node_ir_temp[node] = result;
+    }
 
     // Check that the referenced variable is mutable if creating mutable ref
     if (innerExpr->label == "Identifier") {
@@ -678,6 +917,13 @@ STypePtr SemanticAnalyzer::visitDerefExpr(const Node* node) {
     if (!innerExpr) return SType::makeUnknown();
     auto innerType = visitExpr(innerExpr);
 
+    // IR: 解引用 DEREF inner, _, result
+    {
+        string result = newTemp();
+        emit(IROp::DEREF, node_ir_temp[innerExpr], "", result);
+        node_ir_temp[node] = result;
+    }
+
     if (!innerType->isRef() && !innerType->isMutRef()) {
         error("cannot dereference non-reference type: " + innerType->toString(), line);
         return SType::makeUnknown();
@@ -694,17 +940,25 @@ STypePtr SemanticAnalyzer::visitCallExpr(const Node* node) {
     // Process arguments
     auto* argList = findChild(node, "ArgList");
     vector<STypePtr> argTypes;
+    int argCount = 0;
     if (argList) {
         for (auto& c : argList->children) {
             if (!c->isLeaf) {
                 argTypes.push_back(visitExpr(c.get()));
+                emit(IROp::PARAM, node_ir_temp[c.get()]);  // IR: 参数
+                argCount++;
             }
         }
     }
 
+    // IR: 调用结果临时变量（对齐 genCallExpr，在 PARAM 之后、CALL 之前分配）
+    string irResult = newTemp();
+
     auto it = functions.find(funcName);
     if (it == functions.end()) {
         error("function '" + funcName + "' not declared", line);
+        emit(IROp::CALL, funcName, to_string(argCount), "");  // IR
+        node_ir_temp[node] = "";
         return SType::makeUnknown();
     }
 
@@ -728,6 +982,15 @@ STypePtr SemanticAnalyzer::visitCallExpr(const Node* node) {
         }
     }
 
+    // IR: CALL（有返回值则写入结果临时变量，否则空）
+    if (func->return_type && !func->return_type->isVoid()) {
+        emit(IROp::CALL, funcName, to_string(argCount), irResult);
+        node_ir_temp[node] = irResult;
+    } else {
+        emit(IROp::CALL, funcName, to_string(argCount), "");
+        node_ir_temp[node] = "";
+    }
+
     return func->return_type ? func->return_type : SType::makeVoid();
 }
 
@@ -737,7 +1000,7 @@ STypePtr SemanticAnalyzer::visitIndexExpr(const Node* node) {
     string varName = extractId(node);
 
     auto sym = lookupVar(varName, line);
-    if (!sym) return SType::makeUnknown();
+    if (!sym) { node_ir_temp[node] = ""; return SType::makeUnknown(); }
 
     if (!sym->is_assigned) {
         error("variable '" + varName + "' used before assignment", line);
@@ -749,6 +1012,12 @@ STypePtr SemanticAnalyzer::visitIndexExpr(const Node* node) {
             auto idxType = visitExpr(c.get());
             if (!idxType->isUnknown() && !idxType->isI32()) {
                 error("array index must be integer type", line);
+            }
+            // IR: 数组加载 INDEX_LOAD arrName, idx, result
+            {
+                string result = newTemp();
+                emit(IROp::INDEX_LOAD, varName, node_ir_temp[c.get()], result);
+                node_ir_temp[node] = result;
             }
             break;
         }
@@ -771,11 +1040,17 @@ STypePtr SemanticAnalyzer::visitArrayLit(const Node* node) {
     int line = extractLine(node);
     vector<STypePtr> elemTypes;
 
+    // IR: 数组字面量 ARRAY_LIT elem, count, result
+    string irResult = newTemp();
+    int count = 0;
     for (auto& c : node->children) {
         if (!c->isLeaf) {
             elemTypes.push_back(visitExpr(c.get()));
+            emit(IROp::ARRAY_LIT, node_ir_temp[c.get()], to_string(count), irResult);
+            count++;
         }
     }
+    node_ir_temp[node] = irResult;
 
     if (elemTypes.empty()) return SType::makeArray(SType::makeUnknown(), 0);
 
@@ -803,16 +1078,23 @@ STypePtr SemanticAnalyzer::visitTupleLit(const Node* node) {
         for (auto& c : node->children) {
             if (!c->isLeaf) nonLeafCount++;
         }
-        if (nonLeafCount == 0) return SType::makeUnit();
+        if (nonLeafCount == 0) { node_ir_temp[node] = ""; return SType::makeUnit(); }
         // Single element without comma => not a tuple (shouldn't reach here, parser handles it)
     }
 
     vector<STypePtr> elemTypes;
+
+    // IR: 元组字面量（复用 ARRAY_LIT emit，对齐 IRGenerator genArrayLit）
+    string irResult = newTemp();
+    int count = 0;
     for (auto& c : node->children) {
         if (!c->isLeaf) {
             elemTypes.push_back(visitExpr(c.get()));
+            emit(IROp::ARRAY_LIT, node_ir_temp[c.get()], to_string(count), irResult);
+            count++;
         }
     }
+    node_ir_temp[node] = irResult;
 
     return SType::makeTuple(move(elemTypes));
 }
@@ -822,14 +1104,20 @@ STypePtr SemanticAnalyzer::visitRangeExpr(const Node* node) {
     for (auto& c : node->children) {
         if (!c->isLeaf) visitExpr(c.get());
     }
+    node_ir_temp[node] = "";  // IR: range 本身不求值（for 循环处理两端）
     return SType::makeI32(); // ranges are integer
 }
 
 STypePtr SemanticAnalyzer::visitParenExpr(const Node* node) {
     // ParenExpr: (, Expr, )
     for (auto& c : node->children) {
-        if (!c->isLeaf) return visitExpr(c.get());
+        if (!c->isLeaf) {
+            auto t = visitExpr(c.get());
+            node_ir_temp[node] = node_ir_temp[c.get()];  // IR 透传
+            return t;
+        }
     }
+    node_ir_temp[node] = "";
     return SType::makeUnknown();
 }
 
@@ -839,6 +1127,7 @@ STypePtr SemanticAnalyzer::visitAtom(const Node* node) {
     // Identifier node: single leaf child "Identifier: name"
     if (node->label == "Identifier") {
         string name = extractId(node);
+        node_ir_temp[node] = name;  // IR
         auto sym = lookupVar(name, line);
         if (!sym) return SType::makeUnknown();
 
@@ -848,6 +1137,7 @@ STypePtr SemanticAnalyzer::visitAtom(const Node* node) {
         return sym->type;
     }
 
+    node_ir_temp[node] = "";
     return SType::makeUnknown();
 }
 

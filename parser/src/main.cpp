@@ -16,7 +16,7 @@
 #include "../include/logprintf.h"
 #include "../include/parser.h"
 #include "../include/SemanticAnalyzer.h"
-#include "../include/IRGenerator.h"
+#include "../include/Pipeline.h"
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -130,12 +130,13 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // ---- Semantic Analysis ----
+  // ---- Semantic Analysis + IR Generation (via Pipeline) ----
   if (!quiet)
-    log(LogLevel::INFO, "Running semantic analysis...");
+    log(LogLevel::INFO, "Running semantic analysis + IR generation via Pipeline...");
 
   SemanticAnalyzer analyzer;
-  analyzer.analyze(tree.get());
+  Pipeline pipeline(analyzer);
+  pipeline.run(tree.get());
 
   if (analyzer.hasErrors()) {
     if (!quiet)
@@ -160,20 +161,17 @@ int main(int argc, char *argv[]) {
     log(LogLevel::INFO, "Semantic analysis result written to: " + semantic_output);
   }
 
-  // ---- IR Generation ----
+  // IR 已在 pipeline.run 内生成（语义通过时）
   if (!quiet)
-    log(LogLevel::INFO, "Generating intermediate code...");
-
-  IRGenerator irgen;
-  irgen.generate(tree.get());
+    log(LogLevel::INFO, "Intermediate code generated via Pipeline.");
 
   if (ir_output != "") {
-    irgen.writeIR(ir_output);
+    analyzer.writeIR(ir_output);
     log(LogLevel::INFO, "IR written to: " + ir_output);
   } else {
     if (!quiet) {
       cout << "\n=== Intermediate Code (Quadruples) ===\n";
-      irgen.printIR(cout);
+      analyzer.printIR(cout);
       cout << "=== IR generation complete ===\n" << endl;
     }
   }
