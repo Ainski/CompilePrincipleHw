@@ -206,15 +206,77 @@ public:
     }
 
     // ----------------------------------------------------------
-    //  Block -> '{' StmtList '}'
+    //  BlockExpr -> '{' { Stmt | Expr ';' | Expr '}'
+    //  7.0/7.1：块作为表达式，末尾无分号表达式（TailExpr）作为块值
+    //  兼容旧语句块（无末尾表达式时，块值为 unit）
     // ----------------------------------------------------------
     NodePtr parseBlock() {
         auto node = makeNode("Block");
         addChild(node, expectLeaf("LBrace", "'{'"));
         while (!ts.check("RBrace") && !ts.atEnd()) {
-            addChild(node, parseStmt());
+            const string& c = ts.peek().category;
+            // 纯语句关键字 → parseStmt（这些不是表达式）
+            if (c == "Semicolon" || c == "Let" || c == "Return" ||
+                c == "While" || c == "For" || c == "Break" || c == "Continue") {
+                addChild(node, parseStmt());
+                continue;
+            }
+            // 表达式起始（含 if/loop/{/普通表达式）
+            NodePtr expr = parseExpr();
+            if (ts.check("Assign")) {
+                auto stmt = makeNode("AssignStmt");
+                addChild(stmt, move(expr));
+                addChild(stmt, consumeLeaf());            // '='
+                addChild(stmt, parseExpr());
+                addChild(stmt, expectLeaf("Semicolon", "';' after assignment"));
+                addChild(node, move(stmt));
+            } else if (ts.check("Semicolon")) {
+                auto stmt = makeNode("ExprStmt");
+                addChild(stmt, move(expr));
+                addChild(stmt, consumeLeaf());            // ';'
+                addChild(node, move(stmt));
+            } else if (ts.check("RBrace")) {
+                // 末尾表达式：块值（7.0/7.1，无分号）
+                auto tail = makeNode("TailExpr");
+                addChild(tail, move(expr));
+                addChild(node, move(tail));
+                break;
+            } else {
+                // if/loop/{ 等块表达式作为语句（无分号，值丢弃）
+                auto stmt = makeNode("ExprStmt");
+                addChild(stmt, move(expr));
+                addChild(node, move(stmt));
+            }
         }
         addChild(node, expectLeaf("RBrace", "'}'"));
+        return node;
+    }
+
+    // ----------------------------------------------------------
+    //  7.3 选择表达式 IfExpr -> if Expr Block [else Block | else IfExpr]
+    // ----------------------------------------------------------
+    NodePtr parseIfExpr() {
+        auto node = makeNode("IfExpr");
+        addChild(node, expectLeaf("If"));
+        addChild(node, parseExpr());          // 条件
+        addChild(node, parseBlock());         // then block
+        if (ts.check("Else")) {
+            auto elseNode = makeNode("ElseClause");
+            addChild(elseNode, consumeLeaf());
+            if (ts.check("If")) addChild(elseNode, parseIfExpr());   // else if
+            else                addChild(elseNode, parseBlock());     // else block
+            addChild(node, move(elseNode));
+        }
+        return node;
+    }
+
+    // ----------------------------------------------------------
+    //  7.4 循环表达式 LoopExpr -> loop Block
+    // ----------------------------------------------------------
+    NodePtr parseLoopExpr() {
+        auto node = makeNode("LoopExpr");
+        addChild(node, expectLeaf("Loop"));
+        addChild(node, parseBlock());
         return node;
     }
 
@@ -242,10 +304,11 @@ public:
         if (tok.category == "For")      return parseForStmt();
         // 5.3  loop statement
         if (tok.category == "Loop")     return parseLoopStmt();
-        // 5.4  break
+        // 5.4  break [Expr];  （7.4 break 可带表达式作为循环表达式返回值）
         if (tok.category == "Break") {
             auto n = makeNode("BreakStmt");
             addChild(n, consumeLeaf());
+            if (!ts.check("Semicolon")) addChild(n, parseExpr());
             addChild(n, expectLeaf("Semicolon", "';' after break"));
             return n;
         }
@@ -472,6 +535,13 @@ public:
     //       | ID ['(' ArgList ')' | '[' Expr ']']
     NodePtr parseAtom() {
         const Token& tok = ts.peek();
+
+        // 7.0/7.1 块表达式
+        if (tok.category == "LBrace") return parseBlock();
+        // 7.3 选择表达式
+        if (tok.category == "If")     return parseIfExpr();
+        // 7.4 循环表达式
+        if (tok.category == "Loop")   return parseLoopExpr();
 
         // numeric / string / char constant
         if (typeToString(tok.type) == "constant") {

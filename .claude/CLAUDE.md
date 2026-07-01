@@ -74,15 +74,15 @@ docker build -t compiler .
 目标：SemanticAnalyzer 嫁接 IR 生成，单次遍历完成语义检查 + 四元式 emit；IRGenerator 已删除。
 详细：`milestones/M1.md`
 
-### M2: 规则 7.x 补齐（当前）
-目标：函数表达式块/选择表达式/循环表达式（7.0-7.4）语法+语义+IR。
-前置：M1　详细：`milestones/M2.md`
+### M2: 规则 7.x 补齐 ✅（2026-07-02）
+目标：if/loop/block 统一表达式化，支持块值/选择/循环表达式（7.0-7.4）。
+详细：`milestones/M2.md`
 
-### M3: 目标代码生成（x86-64 汇编）
-目标：四元式 → 可汇编执行 `.s`，gcc 链接为可执行程序。
-前置：M2　详细：`milestones/M3.md`
+### M3: 目标代码生成（x86-64 汇编）✅（2026-07-02）
+目标：四元式 → 可汇编执行 `.s`；fibonacci(10)=55 端到端验证通过。
+详细：`milestones/M3.md`
 
-### M4: 报告、测试加固与交付
+### M4: 报告、测试加固与交付（当前）
 目标：`report3`（含 AI 章节 + 一遍论证）+ 答辩材料 + v3.0.0。
 前置：M3　详细：`milestones/M4.md`
 

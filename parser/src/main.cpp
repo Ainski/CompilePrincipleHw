@@ -17,6 +17,7 @@
 #include "../include/parser.h"
 #include "../include/SemanticAnalyzer.h"
 #include "../include/Pipeline.h"
+#include "../include/CodeGenerator.h"
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -53,6 +54,14 @@ int main(int argc, char *argv[]) {
   string ir_output = "";
   app.add_option("--ir-output", ir_output,
                  "Output file for intermediate code (quadruples)");
+
+  string asm_output = "";
+  app.add_option("--asm-output", asm_output,
+                 "Output x86-64 assembly (.s) for M3 target code generation");
+
+  string entry = "";
+  app.add_option("--entry", entry,
+                 "Entry function name for the generated _start (asm linking)");
 
   bool print_tokens = false;
   app.add_flag("--print-tokens", print_tokens, "Print tokens to console");
@@ -174,6 +183,20 @@ int main(int argc, char *argv[]) {
       analyzer.printIR(cout);
       cout << "=== IR generation complete ===\n" << endl;
     }
+  }
+
+  // ---- 目标代码生成（M3，x86-64 AT&T 汇编）----
+  if (asm_output != "") {
+    CodeGenerator codegen(analyzer.getIR(), entry);
+    string asmText = codegen.generate();
+    ofstream ofs(asm_output);
+    if (!ofs) {
+      cerr << "Error: Cannot open asm output file: " << asm_output << "\n";
+      return 1;
+    }
+    ofs << asmText;
+    ofs.close();
+    log(LogLevel::INFO, "Assembly written to: " + asm_output);
   }
 
   return 0;

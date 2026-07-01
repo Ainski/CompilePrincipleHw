@@ -238,7 +238,11 @@ void SemanticAnalyzer::visitFunction(const Node* node) {
         emit(IROp::ASSIGN, "param_" + pname, "", pname);
     }
 
-    if (block) visitBlock(block);
+    if (block) {
+        block_tail_as_return = true;     // 7.2：函数体末尾表达式作隐式 return
+        visitBlock(block);
+        block_tail_as_return = false;
+    }
 
     symtab.exitScope();
 
@@ -251,10 +255,32 @@ void SemanticAnalyzer::visitFunction(const Node* node) {
 
 void SemanticAnalyzer::visitBlock(const Node* node) {
     symtab.enterScope();
+    bool amFuncBody = block_tail_as_return;
+    block_tail_as_return = false;                      // 嵌套块（then/else/loop body）不是函数体
+    node_block_type[node] = SType::makeUnit();         // 默认块值为 unit
     for (auto& c : node->children) {
         if (c->isLeaf) continue; // skip { } tokens
-        visitStmt(c.get());
+        if (c->label == "TailExpr") {
+            // 7.0/7.1 块末尾表达式（块值）
+            const Node* tailExpr = nullptr;
+            for (auto& tc : c->children)
+                if (!tc->isLeaf) { tailExpr = tc.get(); break; }
+            if (tailExpr) {
+                auto t = visitExpr(tailExpr);
+                node_ir_temp[node] = node_ir_temp[tailExpr];
+                node_block_type[node] = t;            // 块值类型
+                // 7.2 仅函数体直接块的末尾表达式作为隐式 return（有值才 return）
+                if (amFuncBody && !node_ir_temp[tailExpr].empty()) {
+                    emit(IROp::RETURN, node_ir_temp[tailExpr]);
+                    if (current_function)
+                        emit(IROp::JUMP, "func_" + current_function->name + "_end");
+                }
+            }
+        } else {
+            visitStmt(c.get());
+        }
     }
+    block_tail_as_return = amFuncBody;
     symtab.exitScope();
 }
 
@@ -637,12 +663,16 @@ void SemanticAnalyzer::visitBreakStmt(const Node* node) {
     if (in_loop <= 0) {
         error("break statement must be inside a loop", line);
     }
-    // Check if break has an expression (for loop expressions 7.4)
+    // 7.4 break 可带表达式（循环表达式的返回值）
+    const Node* breakExpr = nullptr;
     for (auto& c : node->children) {
-        if (!c->isLeaf && c->label != "BreakStmt") {
-            visitExpr(c.get());
-            break;
-        }
+        if (!c->isLeaf && c->label != "BreakStmt") { breakExpr = c.get(); break; }
+    }
+    if (breakExpr) {
+        visitExpr(breakExpr);
+        // break 值汇合到 loop_result（循环表达式上下文）
+        if (!loop_result.empty() && !node_ir_temp[breakExpr].empty())
+            emit(IROp::ASSIGN, node_ir_temp[breakExpr], "", loop_result);
     }
     // IR: 跳到循环结束
     if (!break_label.empty()) emit(IROp::JUMP, break_label);
@@ -667,6 +697,112 @@ void SemanticAnalyzer::visitExprStmt(const Node* node) {
 }
 
 // ============================================================
+//  7.x 表达式块 / 选择表达式 / 循环表达式
+// ============================================================
+
+// 检查 node 内是否有「带表达式的 break」（决定 LoopExpr 是否需要结果汇合 temp）
+// 不进入嵌套循环：内层 break 属于内层 loop
+static bool hasBreakWithValue(const Node* node) {
+    if (!node) return false;
+    if (node->label == "BreakStmt") {
+        for (auto& c : node->children)
+            if (!c->isLeaf && c->label != "BreakStmt") return true;
+        return false;
+    }
+    if (node->label == "LoopExpr" || node->label == "LoopStmt" ||
+        node->label == "WhileStmt" || node->label == "ForStmt")
+        return false;
+    for (auto& c : node->children)
+        if (hasBreakWithValue(c.get())) return true;
+    return false;
+}
+
+STypePtr SemanticAnalyzer::visitIfExpr(const Node* node) {
+    string elseLabel = newLabel();
+    string endLabel = newLabel();
+
+    // 预检查 then/else 是否含 TailExpr（决定 IfExpr 是否有值）
+    auto blocks = findChildren(node, "Block");
+    bool hasValue = false;
+    for (auto* b : blocks) {
+        for (auto& c : b->children)
+            if (!c->isLeaf && c->label == "TailExpr") { hasValue = true; break; }
+        if (hasValue) break;
+    }
+    string result = hasValue ? newTemp() : "";
+
+    // 条件
+    for (auto& c : node->children) {
+        if (!c->isLeaf && c->label != "IfExpr" && c->label != "Block" &&
+            c->label != "ElseClause") {
+            visitExpr(c.get());
+            emit(IROp::JZ, node_ir_temp[c.get()], elseLabel);
+            break;
+        }
+    }
+
+    // then
+    if (!blocks.empty()) {
+        visitBlock(blocks[0]);
+        if (hasValue && !node_ir_temp[blocks[0]].empty())
+            emit(IROp::ASSIGN, node_ir_temp[blocks[0]], "", result);
+    }
+    emit(IROp::JUMP, endLabel);
+
+    // else
+    emit(IROp::LABEL, elseLabel);
+    auto* elseClause = findChild(node, "ElseClause");
+    if (elseClause) {
+        for (auto& c : elseClause->children) {
+            if (!c->isLeaf) {
+                if (c->label == "Block") {
+                    visitBlock(c.get());
+                    if (hasValue && !node_ir_temp[c.get()].empty())
+                        emit(IROp::ASSIGN, node_ir_temp[c.get()], "", result);
+                } else if (c->label == "IfExpr") {
+                    visitIfExpr(c.get());
+                    if (hasValue && !node_ir_temp[c.get()].empty())
+                        emit(IROp::ASSIGN, node_ir_temp[c.get()], "", result);
+                }
+            }
+        }
+    }
+    emit(IROp::LABEL, endLabel);
+
+    node_ir_temp[node] = result;
+    // IfExpr 类型 = then 块的值类型
+    return blocks.empty() ? SType::makeUnknown() :
+           (node_block_type.count(blocks[0]) ? node_block_type[blocks[0]] : SType::makeUnknown());
+}
+
+STypePtr SemanticAnalyzer::visitLoopExpr(const Node* node) {
+    string startLabel = newLabel();
+    string endLabel = newLabel();
+
+    emit(IROp::LABEL, startLabel);
+
+    auto* block = findChild(node, "Block");
+    bool hasBreakValue = block && hasBreakWithValue(block);
+
+    string oldBreak = break_label, oldContinue = continue_label;
+    string oldLoopResult = loop_result;
+    break_label = endLabel;
+    continue_label = startLabel;
+    loop_result = hasBreakValue ? newTemp() : "";   // 7.4 break 值汇合点（仅有带值 break 时分配）
+
+    if (block) { in_loop++; visitBlock(block); in_loop--; }
+
+    emit(IROp::JUMP, startLabel);
+    emit(IROp::LABEL, endLabel);
+
+    break_label = oldBreak;
+    continue_label = oldContinue;
+    node_ir_temp[node] = loop_result;
+    loop_result = oldLoopResult;
+    return hasBreakValue ? SType::makeI32() : SType::makeUnknown();
+}
+
+// ============================================================
 //  Expression visitors
 // ============================================================
 
@@ -687,6 +823,9 @@ STypePtr SemanticAnalyzer::visitExpr(const Node* node) {
     if (lbl == "TupleLit")   return visitTupleLit(node);
     if (lbl == "ParenExpr")  return visitParenExpr(node);
     if (lbl == "RangeExpr")  return visitRangeExpr(node);
+    if (lbl == "IfExpr")     return visitIfExpr(node);
+    if (lbl == "LoopExpr")   return visitLoopExpr(node);
+    if (lbl == "Block")      { visitBlock(node); return node_block_type.count(node) ? node_block_type[node] : SType::makeUnknown(); }
 
     // Single child passthrough (e.g. just an AddExpr or Term)
     if (!node->isLeaf && node->children.size() == 1 && !node->children[0]->isLeaf)

@@ -24,6 +24,9 @@ class SemanticAnalyzer {
     vector<SemanticError> errors;
     shared_ptr<FunctionInfo> current_function;
     int in_loop = 0;
+    bool block_tail_as_return = false;   // 7.2：函数体块末尾 TailExpr 作为隐式 return
+    string loop_result;                  // 7.4：循环表达式 break 值的汇合临时变量
+    unordered_map<const Node*, STypePtr> node_block_type;  // 7.x：块表达式的值类型
 
     // ---- IR 生成基础设施（作业3 a' 嫁接合并）----
     vector<Quadruple> code;
@@ -88,6 +91,8 @@ class SemanticAnalyzer {
     STypePtr visitTupleLit(const Node* node);
     STypePtr visitRangeExpr(const Node* node);
     STypePtr visitParenExpr(const Node* node);
+    STypePtr visitIfExpr(const Node* node);      // 7.3 选择表达式
+    STypePtr visitLoopExpr(const Node* node);    // 7.4 循环表达式
 
     void checkLvalue(const Node* node, int line);
 
