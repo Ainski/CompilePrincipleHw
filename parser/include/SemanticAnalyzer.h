@@ -27,6 +27,7 @@ class SemanticAnalyzer {
     bool block_tail_as_return = false;   // 7.2：函数体块末尾 TailExpr 作为隐式 return
     string loop_result;                  // 7.4：循环表达式 break 值的汇合临时变量
     unordered_map<const Node*, STypePtr> node_block_type;  // 7.x：块表达式的值类型
+    string array_lit_target;             // 9.x：复合类型整体赋值时，ARRAY_LIT 的直接写入目标
 
     // ---- IR 生成基础设施（作业3 a' 嫁接合并）----
     vector<Quadruple> code;
@@ -87,6 +88,7 @@ class SemanticAnalyzer {
     STypePtr visitLiteral(const Node* node);
     STypePtr visitCallExpr(const Node* node);
     STypePtr visitIndexExpr(const Node* node);
+    STypePtr visitTupleGetExpr(const Node* node);  // 9.3 元组元素访问
     STypePtr visitArrayLit(const Node* node);
     STypePtr visitTupleLit(const Node* node);
     STypePtr visitRangeExpr(const Node* node);

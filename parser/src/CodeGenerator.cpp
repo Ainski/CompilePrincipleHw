@@ -38,6 +38,7 @@ string CodeGenerator::generate() {
         if (q.op == IROp::ARRAY_LIT && !q.result.empty()) array_names_.insert(q.result);
         if (q.op == IROp::INDEX_LOAD && !q.arg1.empty()) array_names_.insert(q.arg1);
         if (q.op == IROp::INDEX_STORE && !q.result.empty()) array_names_.insert(q.result);
+        if (q.op == IROp::TUPLE_GET && !q.arg1.empty()) array_names_.insert(q.arg1);   // 元组也按连续区
     }
     out_ << "    .text\n";
     bool first = true;
@@ -190,9 +191,17 @@ string CodeGenerator::generate() {
             }
             break;
         }
-        case IROp::TUPLE_GET:
-            out_ << "    # unimplemented op: " << q.toString() << "\n";
+        case IROp::TUPLE_GET: {
+            // tuple(arg1), idx(arg2 字面量), result —— 元组元素 i 在 base - i*8
+            int s = slot(q.arg1);
+            int idx = atoi(q.arg2.c_str());
+            emit("lea -" + to_string(s) + "(%rbp), %rax");
+            emit("mov $" + to_string(idx * 8) + ", %rcx");
+            emit("sub %rcx, %rax");
+            emit("mov (%rax), %rax");
+            emit("mov %rax, " + operand(q.result));
             break;
+        }
 
         case IROp::NEG:
             emit("mov " + operand(q.arg1) + ", %rax");
@@ -210,7 +219,7 @@ string CodeGenerator::generate() {
     if (!entry_.empty()) {
         out_ << "    .globl _start\n";
         out_ << "_start:\n";
-        emit("mov $10, %rdi");         // 入口函数参数（验证：fibonacci(10)=55）
+        emit("mov $" + to_string(entry_arg_) + ", %rdi");  // 入口函数参数
         emit("call " + entry_);
         emit("mov %rax, %rdi");        // exit code = 返回值
         emit("mov $60, %rax");         // sys_exit

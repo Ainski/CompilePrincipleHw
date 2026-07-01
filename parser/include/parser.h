@@ -616,6 +616,13 @@ public:
                 addChild(node, expectLeaf("RBracket", "']'"));
                 return node;
             }
+            if (ts.check("Dot")) {              // 9.3 tuple element a.NUM
+                auto node = makeNode("TupleGetExpr");
+                addChild(node, makeLeaf("Identifier: " + id.value));
+                addChild(node, consumeLeaf());  // '.'
+                addChild(node, expectLeaf("IntegerConstant", "tuple index after '.'"));
+                return node;
+            }
             // plain identifier / lvalue
             auto node = makeNode("Identifier");
             addChild(node, makeLeaf("Identifier: " + id.value));

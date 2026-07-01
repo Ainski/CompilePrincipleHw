@@ -82,9 +82,13 @@ docker build -t compiler .
 目标：四元式 → 可汇编执行 `.s`；fibonacci(10)=55 端到端验证通过。
 详细：`milestones/M3.md`
 
-### M4: 报告、测试加固与交付（当前）
+### M4: 全面测试与 assignment3 落实验证 ✅（2026-07-02）
+目标：全面测试 + 逐项核对 assignment3 落实；补齐 9.3 元组元素访问。
+详细：`milestones/M4.md`
+
+### M5: 报告、测试加固与交付
 目标：`report3`（含 AI 章节 + 一遍论证）+ 答辩材料 + v3.0.0。
-前置：M3　详细：`milestones/M4.md`
+前置：M4　详细：`milestones/M5.md`
 
 ### 跨里程碑约束
 - 现有 22 项 `semantic_tests` 不可回归（每次改动后跑）

@@ -329,10 +329,14 @@ void SemanticAnalyzer::visitLetStmt(const Node* node) {
         // Find the Expr child (skip Let/VarDecl/leaf tokens)
         for (auto& c : node->children) {
             if (!c->isLeaf && c->label != "VarDecl") {
+                // 复合类型（数组/元组）初始化：ARRAY_LIT 直接写入变量，跳过 temp+ASSIGN
+                bool compositeInit = (varType->isArray() || varType->isTuple()) &&
+                                     (c->label == "ArrayLit" || c->label == "TupleLit");
+                if (compositeInit) array_lit_target = varName;
                 initType = visitExpr(c.get());
-                // IR: 声明时赋值（对齐 genLetStmt，结果与变量名不同才 emit）
                 string r = node_ir_temp[c.get()];
-                if (!r.empty() && r != varName) emit(IROp::ASSIGN, r, "", varName);
+                if (!compositeInit && !r.empty() && r != varName)
+                    emit(IROp::ASSIGN, r, "", varName);
                 break;
             }
         }
@@ -401,6 +405,16 @@ void SemanticAnalyzer::visitAssignStmt(const Node* node) {
 
     // RHS（恢复 emit，求值右值）
     auto* rhsNode = node->children[assignIdx + 1].get();
+    // 复合类型整体赋值：ARRAY_LIT 直接写入 lhs，跳过 temp+ASSIGN
+    bool compositeInit = false;
+    if (lhsNode->label == "Identifier") {
+        auto sym = symtab.lookup(extractId(lhsNode));
+        if (sym && (sym->type->isArray() || sym->type->isTuple()) &&
+            (rhsNode->label == "ArrayLit" || rhsNode->label == "TupleLit")) {
+            array_lit_target = extractId(lhsNode);
+            compositeInit = true;
+        }
+    }
     auto rhsType = visitExpr(rhsNode);
     string rhs = node_ir_temp[rhsNode];
 
@@ -413,7 +427,7 @@ void SemanticAnalyzer::visitAssignStmt(const Node* node) {
     // IR: 赋值存储（对齐 genAssignStmt，按 lhs 形态 emit）
     if (lhsNode->label == "Identifier") {
         string name = extractId(lhsNode);
-        if (rhs != name) emit(IROp::ASSIGN, rhs, "", name);
+        if (!compositeInit && rhs != name) emit(IROp::ASSIGN, rhs, "", name);
     } else if (lhsNode->label == "IndexExpr") {
         string arrName = extractId(lhsNode);
         for (auto& c : lhsNode->children) {
@@ -819,6 +833,7 @@ STypePtr SemanticAnalyzer::visitExpr(const Node* node) {
     if (lbl == "Identifier") return visitAtom(node);
     if (lbl == "CallExpr")   return visitCallExpr(node);
     if (lbl == "IndexExpr")  return visitIndexExpr(node);
+    if (lbl == "TupleGetExpr") return visitTupleGetExpr(node);
     if (lbl == "ArrayLit")   return visitArrayLit(node);
     if (lbl == "TupleLit")   return visitTupleLit(node);
     if (lbl == "ParenExpr")  return visitParenExpr(node);
@@ -1174,13 +1189,54 @@ STypePtr SemanticAnalyzer::visitIndexExpr(const Node* node) {
     return SType::makeUnknown();
 }
 
+STypePtr SemanticAnalyzer::visitTupleGetExpr(const Node* node) {
+    // TupleGetExpr: Identifier, Dot, IntegerConstant
+    int line = extractLine(node);
+    string varName = extractId(node);
+
+    auto sym = lookupVar(varName, line);
+    if (!sym) { node_ir_temp[node] = ""; return SType::makeUnknown(); }
+
+    if (!sym->is_assigned) {
+        error("variable '" + varName + "' used before assignment", line);
+    }
+
+    // 索引（字面量）
+    int idx = -1;
+    for (auto& c : node->children) {
+        if (c->isLeaf && c->label.find("IntegerConstant") != string::npos) {
+            idx = extractInt(c.get());
+            break;
+        }
+    }
+
+    if (!sym->type->isTuple()) {
+        error("cannot use '.' on non-tuple type: " + sym->type->toString(), line);
+        node_ir_temp[node] = "";
+        return SType::makeUnknown();
+    }
+
+    if (idx < 0 || idx >= (int)sym->type->tuple_types.size()) {
+        error("tuple index out of range: " + to_string(idx), line);
+        node_ir_temp[node] = "";
+        return SType::makeUnknown();
+    }
+
+    // IR: TUPLE_GET tuple, idx, result
+    string result = newTemp();
+    emit(IROp::TUPLE_GET, varName, to_string(idx), result);
+    node_ir_temp[node] = result;
+    return sym->type->tuple_types[idx];
+}
+
 STypePtr SemanticAnalyzer::visitArrayLit(const Node* node) {
     // ArrayLit: LBracket, [exprs...], RBracket
     int line = extractLine(node);
     vector<STypePtr> elemTypes;
 
-    // IR: 数组字面量 ARRAY_LIT elem, count, result
-    string irResult = newTemp();
+    // IR: 数组字面量 ARRAY_LIT elem, count, result（若指定 target 则直接写入变量，否则分配 temp）
+    string irResult = array_lit_target.empty() ? newTemp() : array_lit_target;
+    array_lit_target.clear();
     int count = 0;
     for (auto& c : node->children) {
         if (!c->isLeaf) {
@@ -1223,8 +1279,9 @@ STypePtr SemanticAnalyzer::visitTupleLit(const Node* node) {
 
     vector<STypePtr> elemTypes;
 
-    // IR: 元组字面量（复用 ARRAY_LIT emit，对齐 IRGenerator genArrayLit）
-    string irResult = newTemp();
+    // IR: 元组字面量（复用 ARRAY_LIT emit，支持整体赋值 target）
+    string irResult = array_lit_target.empty() ? newTemp() : array_lit_target;
+    array_lit_target.clear();
     int count = 0;
     for (auto& c : node->children) {
         if (!c->isLeaf) {

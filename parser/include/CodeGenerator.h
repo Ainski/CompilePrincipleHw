@@ -27,6 +27,7 @@ class CodeGenerator {
     int call_param_idx_ = 0;               // 调用者 PARAM 用
     string func_end_;                      // 当前函数结束标签
     string entry_;                         // _start 调用的入口函数
+    int entry_arg_ = 0;                    // _start 传给入口函数的参数
 
     bool isNum(const string& s) const;
     int slot(const string& name);          // 分配/取栈槽
@@ -35,8 +36,8 @@ class CodeGenerator {
     void emitLabel(const string& s) { out_ << s << "\n"; }
 
 public:
-    CodeGenerator(const vector<Quadruple>& ir, const string& entry = "")
-        : code_(ir), entry_(entry) {}
+    CodeGenerator(const vector<Quadruple>& ir, const string& entry = "", int entry_arg = 0)
+        : code_(ir), entry_(entry), entry_arg_(entry_arg) {}
 
     string generate();
     void writeAsm(const string& filename) const;

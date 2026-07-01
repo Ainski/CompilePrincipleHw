@@ -63,6 +63,10 @@ int main(int argc, char *argv[]) {
   app.add_option("--entry", entry,
                  "Entry function name for the generated _start (asm linking)");
 
+  int entry_arg = 0;
+  app.add_option("--entry-arg", entry_arg,
+                 "Integer argument passed to the entry function in _start");
+
   bool print_tokens = false;
   app.add_flag("--print-tokens", print_tokens, "Print tokens to console");
 
@@ -187,7 +191,7 @@ int main(int argc, char *argv[]) {
 
   // ---- 目标代码生成（M3，x86-64 AT&T 汇编）----
   if (asm_output != "") {
-    CodeGenerator codegen(analyzer.getIR(), entry);
+    CodeGenerator codegen(analyzer.getIR(), entry, entry_arg);
     string asmText = codegen.generate();
     ofstream ofs(asm_output);
     if (!ofs) {
