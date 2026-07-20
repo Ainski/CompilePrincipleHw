@@ -1,7 +1,10 @@
+#ifdef WINDOWS_BUILD
 #include "../include/gui.h"
 #include "../include/TokenStream.h"
 #include "../include/lexer.h"
 #include "../include/parser.h"
+#include "../include/SemanticAnalyzer.h"
+#include "../include/IRGenerator.h"
 #include "../include/logprintf.h"
 
 // ImGui core headers
@@ -11,9 +14,10 @@
 #include "misc/cpp/imgui_stdlib.h"
 
 // OpenGL and GLFW
-#include <GLFW/glfw3.h>
 
-#ifdef WINDOWS_BUILD
+
+
+#include <GLFW/glfw3.h>
     #define WIN32_LEAN_AND_MEAN
     #include <windows.h>
     #include <commdlg.h>
@@ -21,7 +25,7 @@
     #ifdef ERROR
         #undef ERROR
     #endif
-#endif
+
 
 #if defined(_MSC_VER) && _MSC_VER < 1900
 #define snprintf _snprintf
@@ -52,6 +56,14 @@ struct AppState {
     unique_ptr<Node> parse_tree;     // Parse tree
     bool parse_success = false;
     string parse_error;
+
+    // Intermediate code results
+    vector<Quadruple> ir_code;       // Generated quadruples
+    bool ir_success = false;
+    string ir_error;
+
+    // Right panel view: 0=TokenStream, 1=ParseTree, 2=IntermediateCode
+    int active_right_view = 0;
 
     // File path buffer
     char file_path_buf[1024] = "";
@@ -159,54 +171,49 @@ static void perform_parse() {
 }
 
 // ============================================================
-//  Render Token list
+//  Helper: Perform semantic analysis + IR generation
 // ============================================================
-static void render_token_list() {
-    ImGui::Begin("Token Stream");
+static void perform_ir() {
+    g_state.ir_success = false;
+    g_state.ir_error.clear();
+    g_state.ir_code.clear();
 
-    ImGui::Text("Total: %zu tokens", g_state.tokens.size());
-    ImGui::Separator();
-
-    if (ImGui::BeginTable("Tokens", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable, ImVec2(0, 400))) {
-        ImGui::TableSetupColumn("Pos", ImGuiTableColumnFlags_WidthFixed, 60);
-        ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80);
-
-        ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthFixed, 130);
-        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 200);
-        ImGui::TableSetupColumn("Line", ImGuiTableColumnFlags_WidthFixed, 50);
-        ImGui::TableSetupColumn("Col", ImGuiTableColumnFlags_WidthFixed, 50);
-        ImGui::TableHeadersRow();
-
-        for (size_t i = 0; i < g_state.tokens.size(); i++) {
-            const auto& tok = g_state.tokens[i];
-            ImGui::TableNextRow();
-
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text("%d", tok.pos);
-
-            ImGui::TableSetColumnIndex(2);
-            ImGui::Text("%s",typeToString(tok.type).c_str());
-
-            ImGui::TableSetColumnIndex(1);
-            ImGui::Text("%s", tok.category.c_str());
-
-            ImGui::TableSetColumnIndex(3);
-            ImGui::Text("%s", tok.value.c_str());
-
-            ImGui::TableSetColumnIndex(4);
-            ImGui::Text("%d", tok.lineno);
-
-            ImGui::TableSetColumnIndex(5);
-            ImGui::Text("%d", tok.colno);
-        }
-        ImGui::EndTable();
+    if (!g_state.parse_success || !g_state.parse_tree) {
+        g_state.ir_error = "Parse failed, cannot generate IR";
+        log(LogLevel::ERROR, "Parse not successful, cannot generate IR");
+        return;
     }
 
-    ImGui::End();
+    try {
+        // Run semantic analysis first
+        SemanticAnalyzer analyzer;
+        analyzer.analyze(g_state.parse_tree.get());
+
+        if (analyzer.hasErrors()) {
+            stringstream ss;
+            analyzer.printErrors(ss);
+            g_state.ir_error = "Semantic errors:\n" + ss.str();
+            g_state.ir_success = false;
+            log(LogLevel::WARN, "Semantic analysis found errors, IR may be incomplete");
+            // Continue anyway to show partial IR
+        }
+
+        // Generate IR
+        IRGenerator irgen;
+        irgen.generate(g_state.parse_tree.get());
+        g_state.ir_code = irgen.getIR();
+
+        g_state.ir_success = true;
+        log(LogLevel::INFO, "IR generation succeeded, " + to_string(g_state.ir_code.size()) + " quadruples");
+    } catch (const exception& e) {
+        g_state.ir_success = false;
+        g_state.ir_error = e.what();
+        log(LogLevel::ERROR, string("IR generation failed: ") + e.what());
+    }
 }
 
 // ============================================================
-//  Render parse tree (recursive)
+//  Render parse tree (recursive helper)
 // ============================================================
 static void render_tree_node(const Node& node, const void* node_ptr) {
     if (node.isLeaf) {
@@ -226,20 +233,6 @@ static void render_tree_node(const Node& node, const void* node_ptr) {
             ImGui::TreePop();
         }
     }
-}
-
-static void render_parse_tree() {
-    ImGui::Begin("Parse Tree");
-
-    if (g_state.parse_tree) {
-        ImGui::BeginChild("TreeContent", ImVec2(0, 0), true);
-        render_tree_node(*g_state.parse_tree, g_state.parse_tree.get());
-        ImGui::EndChild();
-    } else {
-        ImGui::Text("Parse tree is empty");
-    }
-
-    ImGui::End();
 }
 
 // ============================================================
@@ -480,6 +473,10 @@ void runGui(const string& input_file) {
                     // If lexical analysis succeeds, perform parsing
                     if (g_state.lex_success) {
                         perform_parse();
+                        // If parsing succeeds, run semantic analysis + IR generation
+                        if (g_state.parse_success) {
+                            perform_ir();
+                        }
                     }
                     g_state.parse_triggered = true;
                 } else {
@@ -496,33 +493,153 @@ void runGui(const string& input_file) {
         ImGui::End();
 
         // ============================================================
-        //  Right top: Token stream (60% width, 50% height)
+        //  Right panel: View selector + selected view (60% width)
         // ============================================================
         ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x + viewport->Size.x * 0.4f, viewport->Pos.y + menu_bar_height));
-        ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.6f, usable_height * 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.6f, usable_height));
 
-        render_token_list();
+        ImGui::Begin("Analysis Results", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
 
-        // ============================================================
-        //  Right bottom: Parse tree (60% width, remaining height)
-        // ============================================================
-        ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x + viewport->Size.x * 0.4f, viewport->Pos.y + menu_bar_height + usable_height * 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.6f, usable_height * 0.5f));
+        // View toggle buttons
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, g_state.active_right_view == 0
+                ? ImVec4(0.3f, 0.5f, 0.8f, 1.0f) : ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+            if (ImGui::Button("Token Stream", ImVec2(130, 25))) {
+                g_state.active_right_view = 0;
+            }
+            ImGui::PopStyleColor();
+        }
+        ImGui::SameLine();
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, g_state.active_right_view == 1
+                ? ImVec4(0.3f, 0.5f, 0.8f, 1.0f) : ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+            if (ImGui::Button("Parse Tree", ImVec2(130, 25))) {
+                g_state.active_right_view = 1;
+            }
+            ImGui::PopStyleColor();
+        }
+        ImGui::SameLine();
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, g_state.active_right_view == 2
+                ? ImVec4(0.3f, 0.5f, 0.8f, 1.0f) : ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+            if (ImGui::Button("Intermediate Code", ImVec2(160, 25))) {
+                g_state.active_right_view = 2;
+            }
+            ImGui::PopStyleColor();
+        }
 
-        render_parse_tree();
+        ImGui::Separator();
+
+        // Show selected view in remaining area
+        float remaining_height = ImGui::GetContentRegionAvail().y;
+        ImGui::BeginChild("ViewContent", ImVec2(0, remaining_height > 0 ? remaining_height : 0), true);
+
+        switch (g_state.active_right_view) {
+            case 0: {
+                // Token Stream view (inline)
+                ImGui::Text("Total: %zu tokens", g_state.tokens.size());
+                ImGui::Separator();
+                if (ImGui::BeginTable("Tokens", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable, ImVec2(0, 0))) {
+                    ImGui::TableSetupColumn("Pos", ImGuiTableColumnFlags_WidthFixed, 60);
+                    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80);
+                    ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthFixed, 130);
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 200);
+                    ImGui::TableSetupColumn("Line", ImGuiTableColumnFlags_WidthFixed, 50);
+                    ImGui::TableSetupColumn("Col", ImGuiTableColumnFlags_WidthFixed, 50);
+                    ImGui::TableHeadersRow();
+
+                    for (size_t i = 0; i < g_state.tokens.size(); i++) {
+                        const auto& tok = g_state.tokens[i];
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("%d", tok.pos);
+                        ImGui::TableSetColumnIndex(2);
+                        ImGui::Text("%s", typeToString(tok.type).c_str());
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::Text("%s", tok.category.c_str());
+                        ImGui::TableSetColumnIndex(3);
+                        ImGui::Text("%s", tok.value.c_str());
+                        ImGui::TableSetColumnIndex(4);
+                        ImGui::Text("%d", tok.lineno);
+                        ImGui::TableSetColumnIndex(5);
+                        ImGui::Text("%d", tok.colno);
+                    }
+                    ImGui::EndTable();
+                }
+                break;
+            }
+            case 1: {
+                // Parse Tree view (inline)
+                if (g_state.parse_tree) {
+                    render_tree_node(*g_state.parse_tree, g_state.parse_tree.get());
+                } else {
+                    ImGui::Text("Parse tree is empty");
+                }
+                break;
+            }
+            case 2: {
+                // Intermediate Code view (inline)
+                ImGui::Text("Total: %zu quadruples", g_state.ir_code.size());
+                ImGui::Separator();
+                if (ImGui::BeginTable("IR", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable, ImVec2(0, 0))) {
+                    ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 40);
+                    ImGui::TableSetupColumn("Op", ImGuiTableColumnFlags_WidthFixed, 110);
+                    ImGui::TableSetupColumn("Arg1", ImGuiTableColumnFlags_WidthStretch, 150);
+                    ImGui::TableSetupColumn("Arg2", ImGuiTableColumnFlags_WidthStretch, 150);
+                    ImGui::TableSetupColumn("Result", ImGuiTableColumnFlags_WidthStretch, 150);
+                    ImGui::TableHeadersRow();
+
+                    for (size_t i = 0; i < g_state.ir_code.size(); i++) {
+                        const auto& q = g_state.ir_code[i];
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("%zu", i);
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::Text("%s", irOpToString(q.op).c_str());
+                        ImGui::TableSetColumnIndex(2);
+                        ImGui::Text("%s", q.arg1.empty() ? "-" : q.arg1.c_str());
+                        ImGui::TableSetColumnIndex(3);
+                        ImGui::Text("%s", q.arg2.empty() ? "-" : q.arg2.c_str());
+                        ImGui::TableSetColumnIndex(4);
+                        ImGui::Text("%s", q.result.empty() ? "-" : q.result.c_str());
+                    }
+                    ImGui::EndTable();
+                }
+                break;
+            }
+        }
+
+        ImGui::EndChild();
+        ImGui::End();
 
         // ============================================================
         //  Bottom status bar
         // ============================================================
         ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + viewport->Size.y - status_bar_height));
-        ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.4f, status_bar_height));
+        ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, status_bar_height));
 
         ImGui::Begin("Status", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
         if (g_state.lex_success) {
-            ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "[OK] Lexical analysis succeeded (%zu tokens)", g_state.tokens.size());
+            ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "[OK] Lex: %zu tokens", g_state.tokens.size());
         } else if (!g_state.lex_error.empty()) {
-            ImGui::TextColored(ImVec4(0.8f, 0.2f, 0.2f, 1.0f), "[ERR] %s", g_state.lex_error.c_str());
+            ImGui::TextColored(ImVec4(0.8f, 0.2f, 0.2f, 1.0f), "[ERR] Lex: %s", g_state.lex_error.c_str());
+        }
+
+        ImGui::SameLine(200);
+
+        if (g_state.parse_success) {
+            ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "[OK] Parse");
+        } else if (!g_state.parse_error.empty()) {
+            ImGui::TextColored(ImVec4(0.8f, 0.2f, 0.2f, 1.0f), "[ERR] Parse: %s", g_state.parse_error.c_str());
+        }
+
+        ImGui::SameLine(400);
+
+        if (g_state.ir_success) {
+            ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "[OK] IR: %zu quads", g_state.ir_code.size());
+        } else if (!g_state.ir_error.empty()) {
+            ImGui::TextColored(ImVec4(0.9f, 0.7f, 0.2f, 1.0f), "[WARN] IR: %s", g_state.ir_error.c_str());
         }
 
         ImGui::End();
@@ -551,3 +668,4 @@ void runGui(const string& input_file) {
 
     log(LogLevel::INFO, "GUI closed");
 }
+#endif

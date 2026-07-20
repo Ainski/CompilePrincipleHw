@@ -385,7 +385,6 @@ void SemanticAnalyzer::visitReturnStmt(const Node* node) {
 
 void SemanticAnalyzer::visitIfStmt(const Node* node) {
     // IfStmt: If, Expr, Block, [ElseClause]
-    int line = extractLine(node);
 
     // Condition expression
     for (auto& c : node->children) {
@@ -434,12 +433,10 @@ void SemanticAnalyzer::visitForStmt(const Node* node) {
 
     bool is_mut = false;
     string varName;
-    int idIdx = 1;
 
     for (size_t i = 0; i < node->children.size(); i++) {
         if (isLeafCat(node->children[i].get(), "Mut")) {
             is_mut = true;
-            idIdx = i + 1;
         }
     }
 
@@ -793,7 +790,6 @@ STypePtr SemanticAnalyzer::visitArrayLit(const Node* node) {
 
 STypePtr SemanticAnalyzer::visitTupleLit(const Node* node) {
     // TupleLit: LParen, [exprs with commas...], RParen
-    int line = extractLine(node);
 
     // Check if it's empty tuple ()
     bool hasComma = hasLeafChild(node, "Comma");

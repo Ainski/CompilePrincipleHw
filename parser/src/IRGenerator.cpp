@@ -139,9 +139,6 @@ void IRGenerator::genProgram(const Node* node) {
 }
 
 void IRGenerator::genFunction(const Node* node) {
-    auto* header = findChild(node, "Function") ? findChild(node, "Function") :
-                   (node->children.size() > 0 ? node->children[0].get() : nullptr);
-
     // Find FuncHeader
     auto* hdr = findChild(node, "FuncHeader");
     if (!hdr) return;
@@ -426,13 +423,13 @@ void IRGenerator::genLoopStmt(const Node* node) {
     continue_label = oldContinue;
 }
 
-void IRGenerator::genBreakStmt(const Node* node) {
+void IRGenerator::genBreakStmt(const Node* /*node*/) {
     if (!break_label.empty()) {
         emit(IROp::JUMP, break_label);
     }
 }
 
-void IRGenerator::genContinueStmt(const Node* node) {
+void IRGenerator::genContinueStmt(const Node* /*node*/) {
     if (!continue_label.empty()) {
         emit(IROp::JUMP, continue_label);
     }
@@ -575,7 +572,7 @@ string IRGenerator::genDerefExpr(const Node* node) {
     return "";
 }
 
-string IRGenerator::genBinary(const Node* node, bool isCmp) {
+string IRGenerator::genBinary(const Node* node, bool /*isCmp*/) {
     vector<const Node*> exprs;
     vector<string> ops;
     for (auto& c : node->children) {
