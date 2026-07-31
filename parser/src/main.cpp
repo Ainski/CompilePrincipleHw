@@ -84,10 +84,8 @@ int main(int argc, char *argv[]) {
       LOGO();
     if (input == "") {
 #ifdef WINDOWS_BUILD
-      if (!use_gui) {
-        log(LogLevel::INFO, "you need to specify input file path");
-        return 1;
-      }
+      // 双击运行（无参数）时自动启动 GUI
+      use_gui = true;
 #else
       log(LogLevel::INFO, "you need to specify input file path");
       return 1;
