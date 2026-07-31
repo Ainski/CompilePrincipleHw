@@ -155,3 +155,14 @@ setup.sh
 *_semantic.txt
 errors.txt
 parser_output.txt
+
+# 运行测试生成的文件
+hello
+hello.ir
+hello.s
+hello.o
+imgui.ini
+
+# Codely CLI
+.codely-cli/
+CODELY.md

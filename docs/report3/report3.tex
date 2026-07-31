@@ -1,7 +1,7 @@
 % ============================================================
 %  编译原理课程设计实验报告
 %  类Rust语言编译器设计与实现（词法→语法→语义→中间代码→目标代码）
-%  作者：程浩然、黄艺鑫、韦畅
+%  作者：韦畅
 % ============================================================
 
 \documentclass[12pt,a4paper]{ctexart}
@@ -19,6 +19,8 @@
 \usepackage{float}
 \usepackage{multirow}
 \usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
 
 % 代码高亮
 \usepackage{listings}
@@ -85,8 +87,8 @@
     \begin{tabular}{rl}
         学院：& 计算机科学与技术学院 \\
         专业：& 计算机科学与技术 \\
-        学号：& 2351579 / 2253797 / 2352628 \\
-        姓名：& 程浩然 / 黄艺鑫 / 韦畅 \\
+        学号：& 2352628 \\
+        姓名：& 韦畅 \\
         指导教师：& 高珍、卫志华 \\
         学期：& 2026 年春季学期
     \end{tabular}
@@ -111,8 +113,8 @@
 \begin{tabular}{rl}
     学院：& 计算机科学与技术学院 \\
     专业：& 计算机科学与技术 \\
-    学号：& 2351579 / 2253797 / 2352628 \\
-    姓名：& 程浩然 / 黄艺鑫 / 韦畅 \\
+    学号：& 2352628 \\
+    姓名：& 韦畅 \\
     指导教师：& 高珍、卫志华 \\
     学期：& 2026 年春季学期
 \end{tabular}}
@@ -170,7 +172,8 @@
 \begin{table}[H]
 \centering
 \caption{分阶段建设成果}
-\begin{tabular}{|c|l|l|}
+\small
+\begin{tabular}{|c|p{3.5cm}|p{5.5cm}|}
 \hline
 \textbf{阶段} & \textbf{核心模块} & \textbf{产出} \\
 \hline
@@ -181,27 +184,12 @@
 课程设计（本报告） & 一遍式架构合并 + 目标代码生成 & 单次遍历 + 可汇编执行 x86-64 汇编 \\
 \hline
 \end{tabular}
+\normalsize
 \end{table}
 
 本阶段在前期成果上完成三项关键工作：\textbf{架构合并}（语义分析与IR生成嫁接为单次遍历）、\textbf{目标代码生成}（四元式 → x86-64 汇编）、\textbf{规则补齐}（函数表达式块、选择表达式、循环表达式、元组元素访问）。
 
-\subsection{团队分工与开发环境}
-
-\begin{table}[H]
-\centering
-\caption{团队分工表}
-\begin{tabular}{|c|c|l|}
-\hline
-\textbf{姓名} & \textbf{学号} & \textbf{主要分工} \\
-\hline
-程浩然 & 2351579 & 一遍式架构合并、目标代码生成器、9.3 元组元素访问、测试与AI辅助章节 \\
-\hline
-黄艺鑫 & 2253797 & 规则 7.x 表达式化、IR 嫁接、x86 翻译表设计、报告主体撰写 \\
-\hline
-韦畅 & 2352628 & 实验报告撰写、规则对照与落实清单、测试用例设计、文档与参考资料整理 \\
-\hline
-\end{tabular}
-\end{table}
+\subsection{开发环境}
 
 \begin{table}[H]
 \centering
@@ -228,7 +216,39 @@
 % ============================================================
 \section{系统总体架构}
 
-\placeholder{系统总体架构图：自上而下展示完整数据流——类Rust源代码 \(\rightarrow\) Flex 词法分析（TokenStream）\(\rightarrow\) 递归下降语法分析（AST）\(\rightarrow\) SemanticAnalyzer 单次遍历（语义检查 + 四元式 IR 同步生成）\(\rightarrow\) CodeGenerator 翻译 \(\rightarrow\) x86-64 AT\&T 汇编(.s) \(\rightarrow\) as 汇编 + ld 链接 \(\rightarrow\) 可执行程序。左侧标注 Pipeline 协调层，右侧标注各阶段输出文件（lexer-output / parser-output / ir-output / asm-output）。}{图2-1 系统总体架构图}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.1cm,
+    box/.style={draw, rounded corners, minimum width=5cm, minimum height=0.8cm, align=center, font=\small},
+    io/.style={draw, dashed, minimum width=3.2cm, minimum height=0.6cm, align=center, font=\footnotesize\itshape},
+    arrow/.style={-Stealth, thick},
+    ioarrow/.style={-Stealth, dashed, gray}
+]
+\node[font=\small\itshape] (src) {源文件 (.rs)};
+\node[box, below=0.5cm of src] (lex) {Flex 词法分析};
+\node[box, below=of lex] (parse) {递归下降语法分析};
+\node[box, below=of parse] (sem) {\textbf{SemanticAnalyzer}\\{\footnotesize 语义检查 + IR 生成（一遍嫁接）}};
+\node[box, below=of sem] (codegen) {CodeGenerator};
+\node[box, below=of codegen] (link) {as 汇编 + ld 链接};
+\node[font=\small\itshape, below=0.5cm of link] (exe) {可执行程序};
+\node[io, right=2cm of lex] (ts) {TokenStream};
+\node[io, right=2cm of parse] (ast) {AST (Node 树)};
+\node[io, right=2cm of sem] (ir) {四元式 IR};
+\node[io, right=2cm of codegen] (asmf) {x86-64 汇编 (.s)};
+\draw[arrow] (src) -- (lex);
+\draw[arrow] (lex) -- (parse);
+\draw[arrow] (parse) -- (sem);
+\draw[arrow] (sem) -- (codegen);
+\draw[arrow] (codegen) -- (link);
+\draw[arrow] (link) -- (exe);
+\draw[ioarrow] (lex) -- (ts);
+\draw[ioarrow] (parse) -- (ast);
+\draw[ioarrow] (sem) -- (ir);
+\draw[ioarrow] (codegen) -- (asmf);
+\end{tikzpicture}
+\caption{系统总体架构图}
+\end{figure}
 
 系统由以下核心模块组成：
 
@@ -267,6 +287,16 @@ ofs << codegen.generate();
 
 这种编排体现编译器设计的经典原则：\textbf{每个阶段只做一件事，输入输出明确}。AST 是前端与后端的唯一数据桥梁，四元式 IR 是中间代码与目标代码的桥梁。
 
+\subsection{GUI 可视化界面}
+
+大作业1 阶段实现了基于 Dear ImGui + GLFW + OpenGL3 的 GUI 界面（Windows 构建），支持源代码编辑、词法分析结果展示、语法树可视化与语义分析结果查看。GUI 通过 \texttt{--gui} 参数启动。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig2-2_gui.png}
+\caption{GUI 可视化界面（源代码编辑、Token 流、AST 树、四元式 IR、x86-64 汇编）}
+\end{figure}
+
 \newpage
 
 % ============================================================
@@ -299,6 +329,39 @@ public:
 
 这种"标签 + 子节点"的类 DOM 结构是前后端协作的隐式契约：语义分析与目标代码生成均通过 \texttt{label} 字符串识别节点类型。
 
+以 \texttt{fn add(a: i32, b: i32) -> i32 \{ a + b \}} 为例，其 AST 结构如下：
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\small\ttfamily},
+    level distance=1.1cm,
+    sibling distance=2.2cm,
+    inner/.style={draw, rounded corners, fill=blue!8, inner sep=4pt},
+    leaf/.style={draw, rounded corners, fill=gray!10, inner sep=3pt, font=\footnotesize\ttfamily}
+]
+\node[inner] {Function: add}
+    child {
+        node[leaf] {i32\ (ret type)}
+    }
+    child {
+        node[inner] {Params}
+        child { node[leaf] {a: i32} }
+        child { node[leaf] {b: i32} }
+    }
+    child {
+        node[inner] {Block}
+        child {
+            node[inner] {AddExpr}
+            child { node[leaf] {a} }
+            child { node[leaf] {+} }
+            child { node[leaf] {b} }
+        }
+    };
+\end{tikzpicture}
+\caption{\texttt{fn add(a, b) \{ a + b \}} 的 AST 结构}
+\end{figure}
+
 \newpage
 
 % ============================================================
@@ -321,6 +384,41 @@ public:
 课程设计要求编译器"一遍完成，语法制导翻译"。前期架构中，\texttt{SemanticAnalyzer}（语义检查）与 \texttt{IRGenerator}（四元式生成）是两个独立的 AST 遍历器，各遍历一次 AST，共两次遍历。
 
 为符合"一遍"要求，本阶段将二者\textbf{嫁接合并}：复用 \texttt{SemanticAnalyzer} 的递归骨架，在每个 \texttt{visitX} 方法中同步插入 IR 生成的 \texttt{emit} 逻辑。嫁接后，单次 \texttt{analyze} 遍历同时完成语义检查与四元式生成，函数体内从两次遍历减少为一次。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.6cm,
+    box/.style={draw, rounded corners, minimum width=3cm, minimum height=0.7cm, align=center, font=\footnotesize},
+    arrow/.style={-Stealth, thick},
+    lbl/.style={font=\footnotesize\itshape, text=gray}
+]
+% --- 左侧：嫁接前（两遍）---
+\node[font=\small\bfseries] at (-3.5, 0) {嫁接前（两遍）};
+\node[box, fill=red!10] (a1) at (-3.5, -1) {SemanticAnalyzer};
+\node[box, fill=red!10, below=of a1] (a2) {遍历 AST：语义检查};
+\node[box, fill=orange!15, below=of a2] (a3) {IRGenerator};
+\node[box, fill=orange!15, below=of a3] (a4) {遍历 AST：IR 生成};
+\node[lbl, below=0.2cm of a4] {\textbf{2 次} AST 遍历};
+\draw[arrow] (a1) -- (a2);
+\draw[arrow] (a2) -- (a3);
+\draw[arrow] (a3) -- (a4);
+
+% --- 右侧：嫁接后（一遍）---
+\node[font=\small\bfseries] at (3.5, 0) {嫁接后（一遍）};
+\node[box, fill=green!12] (b1) at (3.5, -1) {SemanticAnalyzer};
+\node[box, fill=green!12, below=of b1] (b2) {遍历 AST：};
+\node[box, fill=green!12, below=0.1cm of b2] (b2b) {\scriptsize 语义检查 \textbf{+} IR emit};
+\node[box, fill=blue!10, below=of b2b] (b3) {四元式 IR};
+\node[lbl, below=0.2cm of b3] {\textbf{1 次} AST 遍历};
+\draw[arrow] (b1) -- (b2);
+\draw[arrow] (b2b) -- (b3);
+
+% 中间箭头
+\draw[arrow, thick, dashed] (-0.3, -2.5) -- (1.5, -2.5) node[midway, above, font=\footnotesize\itshape] {嫁接合并};
+\end{tikzpicture}
+\caption{一遍嫁接前后架构对比}
+\end{figure}
 
 \subsubsection{数据传递机制}
 
@@ -371,7 +469,7 @@ STypePtr SemanticAnalyzer::visitAddExpr(const Node* node) {
 
 \subsubsection{块值类型传播}
 
-通过 \texttt{node\_block\_type} 映射传递块的值类型：块的末尾表达式（\texttt{TailExpr}）类型即为块值类型。函数体块的末尾表达式作为隐式 \texttt{return}（规则 7.2），由 \texttt{block\_tail\_as\_return} 标志控制，且严格限定为函数体直接块（不误传播到嵌套的 then/else/loop body）。
+通过 \texttt{node\_block\_type} 映射传递块的值类型：块的末尾表达式（\texttt{TailExpr}）类型即为块值类型。函数体块的末尾表达式作为隐式 \texttt{return}（规则 7.2），由 \texttt{block\_tail\_as\_return} 标志控制，且严格限定为函数体直接块（不误传播到嵌套的 then/else/loop\,body）。
 
 \subsubsection{结果临时变量的按需分配}
 
@@ -443,7 +541,7 @@ fibonacci:
 
 \subsection{四元式到 x86 的翻译表}
 
-\begin{longtable}{|l|l|}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{4cm}|>{\raggedright\arraybackslash}p{9cm}|}
 \hline
 \textbf{四元式 OP} & \textbf{x86-64 AT\&T 汇编} \\
 \hline
@@ -484,7 +582,36 @@ fibonacci:
     \item \textbf{返回值}：整数返回值经 \texttt{\%rax} 传递。\texttt{RETURN} 将值存入 \texttt{\%rax} 后跳转到函数结束标签；\texttt{CALL} 后从 \texttt{\%rax} 读取结果。
 \end{itemize}
 
-\placeholder{函数调用栈帧示意图：展示调用者与被调用者的栈帧布局——调用者 push 参数到寄存器、call 指令压入返回地址；被调用者 push \%rbp、建立帧、局部变量在 -8(\%rbp)/-16(\%rbp)... 处、形参从 \%rdi 等寄存器读入栈槽；返回时 \%rax 持返回值，mov \%rbp,\%rsp + pop \%rbp + ret 恢复。}{图5-1 函数调用栈帧布局}
+\begin{figure}[H]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{2.8cm}|l|}
+\hline
+\multicolumn{2}{|c|}{\textbf{高地址} $\uparrow$} \\
+\hline
+ & 调用者栈帧 \\
+\hline
+ & 返回地址（\texttt{call} 指令压入） \\
+\hline
+\texttt{\%rbp} $\rightarrow$ & 保存的 \texttt{\%rbp} \\
+\hline
+\texttt{-8(\%rbp)} & 局部变量 $a$（形参从 \texttt{\%rdi} 读入） \\
+\hline
+\texttt{-16(\%rbp)} & 局部变量 $b$（形参从 \texttt{\%rsi} 读入） \\
+\hline
+ & $\vdots$ \\
+\hline
+\texttt{-N(\%rbp)} & 临时变量 $t_n$ \\
+\hline
+ & \texttt{sub \$1024, \%rsp} 预留空间 \\
+\hline
+\texttt{\%rsp} $\rightarrow$ & 栈顶（1024 字节栈空间底） \\
+\hline
+\multicolumn{2}{|c|}{\textbf{低地址} $\downarrow$} \\
+\hline
+\end{tabular}
+\caption{函数调用栈帧布局}
+\end{figure}
 
 \subsection{程序入口 \texttt{\_start}}
 
@@ -620,79 +747,109 @@ fibonacci(10) & 10 & 55 & \textbf{55} \checkmark \\
 \end{tabular}
 \end{table}
 
-\placeholder{运行截图：终端中 fibonacci 程序从源码生成汇编、as 汇编、ld 链接、运行 ./fib 后 echo \$? 返回 55 的完整命令序列与输出。}{图7-1 目标代码端到端运行验证截图}
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[basicstyle=\ttfamily\small, backgroundcolor=\color{black!5}, frame=single, framerule=0pt, caption={端到端运行验证}]
+$ ./parser --input testfiles/asm_fib.rs \
+    --ir-output fib.ir --asm-output fib.s \
+    --entry fibonacci --entry-arg 10 -q
+$ head fib.ir
+(FUNC_BEGIN, fibonacci, -, -)
+(ASSIGN, param_n, -, n)
+(LE, n, 1, t0)
+(JZ, t0, L0, -)
+(RETURN, n, -, -)
+...
+$ as fib.s -o fib.o && ld fib.o -o fib
+$ ./fib; echo $?
+55
+\end{lstlisting}
+\end{figure}
 
-\placeholder{目标代码截图：CodeGenerator 生成的 fibonacci.s 文件内容（AT\&T 语法），展示函数 prologue、参数寄存器传递、while 循环的 LABEL/JZ/JMP 翻译、RETURN 与函数 epilogue。}{图7-2 生成的 x86-64 汇编代码截图}
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[language=ATnT, caption={CodeGenerator 生成的 fibonacci.s（节选）}]
+    .globl _start
+_start:
+    mov  $10, %rdi          # 入口参数 fibonacci(10)
+    call fibonacci
+    mov  %rax, %rdi          # exit code = 返回值
+    mov  $60, %rax           # sys_exit
+    syscall
+
+fibonacci:
+    push %rbp                # prologue: 保存帧指针
+    mov  %rsp, %rbp           # 建立新帧
+    sub  $1024, %rsp          # 分配栈空间
+    mov  %rdi, %rax           # 参数 n 从 %rdi 读入
+    mov  %rax, -8(%rbp)       # n -> 栈槽
+    # if n <= 1: return n
+    mov  -8(%rbp), %rax
+    mov  $1, %rcx
+    cmp  %rcx, %rax
+    setle %al                 # t0 = (n <= 1)
+    movzbl %al, %eax
+    mov  %rax, -16(%rbp)
+    mov  -16(%rbp), %rax
+    cmp  $0, %rax
+    je   .L0                  # JZ: 若假跳转 else
+    mov  -8(%rbp), %rax       # RETURN n
+    jmp  .fibonacci_end
+.L0:
+    # ... while 循环体 (LABEL/JZ/JMP 翻译) ...
+.fibonacci_end:
+    mov  %rbp, %rsp           # epilogue: 恢复栈指针
+    pop  %rbp                 # 恢复帧指针
+    ret                       # 返回 (%rax 持返回值)
+\end{lstlisting}
+\end{figure}
 
 \subsection{语义分析与 IR 回归测试}
 
 \texttt{semantic\_tests.sh} 覆盖规则 0.1\(\sim\)9.2 共 22 项，全部通过；\texttt{test\_errors.rs} 的 18 类语义错误全部被正确检测；\texttt{test\_full.rs} 生成的 IR 与 golden 基准逐行一致，证明一遍嫁接与规则补齐均未破坏既有行为。
 
-\begin{lstlisting}[caption={fibonacci(10) 端到端验证}]
-$ ./parser --input testfiles/asm_fib.rs \
-    --asm-output fib.s --entry fibonacci --entry-arg 10 -q
-$ as fib.s -o fib.o && ld fib.o -o fib
-$ ./fib; echo $?
-55
-\end{lstlisting}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig7-3_semantic_errors.png}
+\caption{语义错误检测运行截图（18 类错误全部检出）}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{fig7-4_batch_tests.png}
+\caption{语义分析集成测试批量运行截图（22/22 全部通过）}
+\end{figure}
+
+\subsubsection{端到端编译运行示例}
+
+以一个简单的类 Rust 程序为例，展示从源代码到可执行程序的完整编译流程：
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{fig7-5_source_code.png}
+\caption{编译运行示例：源代码与编译信息}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{fig7-6_ir.png}
+\caption{编译运行示例：四元式中间代码}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{fig7-7_asm_run.png}
+\caption{编译运行示例：x86-64 汇编代码与运行结果（exit code = 50）}
+\end{figure}
 
 \subsection{assignment3 规则落实}
 
-全部语法语义规则（0.1\(\sim\)9.3）均落实并通过测试，包括本阶段新增的规则 7.0\(\sim\)7.4（函数表达式块、选择/循环表达式）与 9.3（元组元素访问）。优秀评定所需 ⭐ 数远超 7 颗门槛。
+全部语法语义规则（0.1\(\sim\)9.3）均落实并通过测试，包括本阶段新增的规则 7.0\(\sim\)7.4（函数表达式块、选择/循环表达式）与 9.3（元组元素访问）。优秀评定所需 $\bigstar$ 数远超 7 颗门槛。
 
 \newpage
 
 % ============================================================
-%  第八章 AI 辅助编程
-% ============================================================
-\section{AI辅助编程}
-
-本课程设计过程中，团队使用了 AI 辅助工具（Claude）参与多个环节。本章如实说明 AI 的使用情况、团队对 AI 生成代码的审查与修复过程，以及由此获得的启示。
-
-\subsection{AI 使用环节}
-
-AI 主要参与以下环节（团队始终负责方案决策、代码审查与正确性验证）：
-
-\begin{enumerate}
-    \item \textbf{架构设计探讨}：在 M1 架构合并阶段，AI 提供了"嫁接合并 vs 三钩子 driver"的方案对比分析，团队经评估选定嫁接合并方案。
-    \item \textbf{代码生成}：AI 协助生成 \texttt{CodeGenerator}（目标代码翻译器）、\texttt{visitIfExpr}/\texttt{visitLoopExpr}（表达式 visitor）等模块的初版代码。
-    \item \textbf{调试辅助}：在 IR 对比验证、临时变量编号偏移等问题上，AI 协助定位根因。
-    \item \textbf{重构执行}：AI 执行了一边嫁接、9.3 补齐等机械性重构。
-\end{enumerate}
-
-\subsection{审查与修复案例}
-
-\subsubsection{案例一：临时变量编号偏移}
-
-AI 生成的嫁接代码在赋值左值处理时，\texttt{visitDerefExpr} 仍调用 \texttt{newTemp()} 分配编号（虽因 \texttt{emit\_enabled} 关闭而不输出指令），导致后续 \texttt{ARRAY\_LIT} 的结果临时变量编号比 IRGenerator 多 1，IR golden 不一致。
-
-\textbf{团队审查发现}后，修复方案为：\texttt{newTemp()} 在 \texttt{emit\_enabled} 为 false 时直接返回空字符串、不分配编号。修复后 IR 与 golden 逐行一致。该案例说明：AI 生成的代码可能在"不可见"的副作用（如编号分配）上偏离预期，必须通过差分测试（IR 对照）捕获。
-
-\subsubsection{案例二：块表达式末尾的隐式 return 误传播}
-
-AI 实现规则 7.2（函数体末尾表达式作隐式 return）时，\texttt{block\_tail\_as\_return} 标志在进入函数体后未对嵌套块复位，导致 \texttt{if} 表达式的 then/else 块末尾表达式也被误判为函数 return，生成了多余的 \texttt{RETURN} 指令。
-
-\textbf{团队审查发现}后，引入局部变量 \texttt{amFuncBody}：\texttt{visitBlock} 进入时记录当前标志值并立即复位为 false，确保只有函数体直接块的末尾表达式触发隐式 return，嵌套块不受影响。修复后 7.x 测试通过且既有行为零回归。
-
-\subsubsection{案例三：复合类型整体赋值缺陷}
-
-补齐 9.3 元组元素访问时，运行测试 \texttt{tuple\_test(5)} 返回错误结果。\textbf{团队定位}发现：\texttt{t = (1,2,3)} 的整体赋值经临时变量 + 单字节 \texttt{ASSIGN} 只 copy 了首元素，导致 \texttt{t.1}、\texttt{t.2} 读到垃圾值。这是既有的潜在缺陷（数组也有），因前期未运行复合类型程序而未暴露。
-
-修复方案为引入 \texttt{array\_lit\_target}：当左值是数组/元组变量、右值是数组/元组字面量时，让 \texttt{ARRAY\_LIT} 直接以目标变量名为 result，跳过临时变量与 \texttt{ASSIGN}，所有元素正确就位。该修复同时改善了数组的整体赋值。
-
-\subsection{启示与心得}
-
-\begin{enumerate}
-    \item \textbf{AI 生成代码必须经过差分验证}：嫁接合并的正确性完全依赖 IR golden 逐行对比，仅靠"编译通过 + 部分测试"无法发现编号偏移、多余指令等细微缺陷。
-    \item \textbf{AI 擅长机械重构，不擅长边界语义}：一边嫁接的代码搬运高效准确，但"赋值左值不求值"、"函数体 vs 嵌套块"等语义边界需人工把关。
-    \item \textbf{测试驱动开发的价值}：\texttt{asm\_tests.sh} 的运行验证在 9.3 补齐时直接暴露了潜伏的复合赋值缺陷，证明"可运行验证"是不可替代的正确性保障。
-    \item \textbf{架构清晰是 AI 协作的基础}：本项目清晰的 AST 契约与模块边界，使 AI 能在明确约束下生成可审查的代码。
-\end{enumerate}
-
-\newpage
-
-% ============================================================
-%  第九章 思考与分析
+%  第八章 思考与分析（原第九章，删除 AI 章后顺延）
 % ============================================================
 \section{思考与分析}
 
@@ -715,7 +872,7 @@ AI 实现规则 7.2（函数体末尾表达式作隐式 return）时，\texttt{b
 \newpage
 
 % ============================================================
-%  第十章 总结与反思
+%  第九章 总结与反思（原第十章，删除 AI 章后顺延）
 % ============================================================
 \section{总结与反思}
 
@@ -727,7 +884,7 @@ AI 实现规则 7.2（函数体末尾表达式作隐式 return）时，\texttt{b
     \item \textbf{目标代码生成}：四元式 IR 翻译为可汇编执行的 x86-64 汇编，\texttt{fibonacci(10)=55} 端到端验证；
     \item \textbf{规则全覆盖}：语法语义规则 0.1\(\sim\)9.3 全部落实，含函数表达式块、选择/循环表达式、元组元素访问；
     \item \textbf{18 类语义错误}检测齐全；
-    \item \textbf{优秀资格}：⭐ 数远超 7 颗门槛。
+    \item \textbf{优秀资格}：$\bigstar$ 数远超 7 颗门槛。
 \end{enumerate}
 
 \subsection{遇到的困难与解决}
@@ -750,7 +907,7 @@ AI 实现规则 7.2（函数体末尾表达式作隐式 return）时，\texttt{b
 
 \subsection{知识收获}
 
-通过本课程设计，团队深入理解了编译器从源代码到目标代码的完整构造过程，掌握了一遍编译的工程实现、四元式中间代码设计、x86-64 汇编生成与调用约定、以及 AI 辅助编程的审查方法论。
+通过本课程设计，本人深入理解了编译器从源代码到目标代码的完整构造过程，掌握了一遍编译的工程实现、四元式中间代码设计、x86-64 汇编生成与调用约定。
 
 \newpage
 
