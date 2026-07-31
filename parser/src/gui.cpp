@@ -2,6 +2,9 @@
 #include "../include/TokenStream.h"
 #include "../include/lexer.h"
 #include "../include/parser.h"
+#include "../include/SemanticAnalyzer.h"
+#include "../include/Pipeline.h"
+#include "../include/CodeGenerator.h"
 #include "../include/logprintf.h"
 
 // ImGui core headers
@@ -52,6 +55,12 @@ struct AppState {
     unique_ptr<Node> parse_tree;     // Parse tree
     bool parse_success = false;
     string parse_error;
+
+    // Semantic + IR + ASM results
+    string ir_text;                  // Quadruple IR text
+    string asm_text;                 // Assembly code text
+    string semantic_errors;          // Semantic error messages
+    bool semantic_success = false;
 
     // File path buffer
     char file_path_buf[1024] = "";
@@ -151,6 +160,38 @@ static void perform_parse() {
 
         g_state.parse_success = true;
         log(LogLevel::INFO, "Parsing succeeded");
+
+        // Semantic analysis + IR generation (merged single pass)
+        g_state.ir_text.clear();
+        g_state.asm_text.clear();
+        g_state.semantic_errors.clear();
+        g_state.semantic_success = false;
+
+        SemanticAnalyzer analyzer;
+        Pipeline pipeline(analyzer);
+        pipeline.run(g_state.parse_tree.get());
+
+        if (analyzer.hasErrors()) {
+            stringstream ss;
+            for (auto& e : analyzer.getErrors()) {
+                ss << "Error: " << e.message << " at line " << e.line << "\n";
+            }
+            g_state.semantic_errors = ss.str();
+            log(LogLevel::WARN, "Semantic analysis found errors");
+        } else {
+            g_state.semantic_success = true;
+
+            // IR text
+            stringstream ir_ss;
+            analyzer.printIR(ir_ss);
+            g_state.ir_text = ir_ss.str();
+            log(LogLevel::INFO, "IR generated");
+
+            // Assembly code
+            CodeGenerator codegen(analyzer.getIR(), "", 0);
+            g_state.asm_text = codegen.generate();
+            log(LogLevel::INFO, "Assembly generated");
+        }
     } catch (const exception& e) {
         g_state.parse_success = false;
         g_state.parse_error = e.what();
@@ -229,14 +270,65 @@ static void render_tree_node(const Node& node, const void* node_ptr) {
 }
 
 static void render_parse_tree() {
-    ImGui::Begin("Parse Tree");
+    ImGui::Begin("Analysis Results");
 
-    if (g_state.parse_tree) {
-        ImGui::BeginChild("TreeContent", ImVec2(0, 0), true);
-        render_tree_node(*g_state.parse_tree, g_state.parse_tree.get());
-        ImGui::EndChild();
-    } else {
-        ImGui::Text("Parse tree is empty");
+    if (ImGui::BeginTabBar("ResultTabs", ImGuiTabBarFlags_None)) {
+
+        // --- Tab 1: Parse Tree ---
+        if (ImGui::BeginTabItem("AST Tree")) {
+            if (g_state.parse_tree) {
+                ImGui::BeginChild("TreeContent", ImVec2(0, 0), true);
+                render_tree_node(*g_state.parse_tree, g_state.parse_tree.get());
+                ImGui::EndChild();
+            } else {
+                ImGui::TextDisabled("No parse tree. Click Parse to analyze.");
+            }
+            ImGui::EndTabItem();
+        }
+
+        // --- Tab 2: Quadruple IR ---
+        if (ImGui::BeginTabItem("IR (Quadruples)")) {
+            if (g_state.semantic_success && !g_state.ir_text.empty()) {
+                ImGui::BeginChild("IRContent", ImVec2(0, 0), true);
+                ImGui::TextUnformatted(g_state.ir_text.c_str());
+                ImGui::EndChild();
+            } else if (!g_state.semantic_errors.empty()) {
+                ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.0f), "%s", g_state.semantic_errors.c_str());
+            } else {
+                ImGui::TextDisabled("No IR. Click Parse to generate.");
+            }
+            ImGui::EndTabItem();
+        }
+
+        // --- Tab 3: Assembly ---
+        if (ImGui::BeginTabItem("x86-64 ASM")) {
+            if (g_state.semantic_success && !g_state.asm_text.empty()) {
+                ImGui::BeginChild("AsmContent", ImVec2(0, 0), true);
+                ImGui::TextUnformatted(g_state.asm_text.c_str());
+                ImGui::EndChild();
+            } else if (!g_state.semantic_errors.empty()) {
+                ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.0f), "%s", g_state.semantic_errors.c_str());
+            } else {
+                ImGui::TextDisabled("No assembly. Click Parse to generate.");
+            }
+            ImGui::EndTabItem();
+        }
+
+        // --- Tab 4: Semantic Errors ---
+        if (ImGui::BeginTabItem("Semantic Errors")) {
+            if (!g_state.semantic_errors.empty()) {
+                ImGui::BeginChild("ErrorContent", ImVec2(0, 0), true);
+                ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.0f), "%s", g_state.semantic_errors.c_str());
+                ImGui::EndChild();
+            } else if (g_state.semantic_success) {
+                ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "Semantic analysis passed. No errors found.");
+            } else {
+                ImGui::TextDisabled("No analysis yet. Click Parse to check.");
+            }
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
     }
 
     ImGui::End();
@@ -259,7 +351,7 @@ void runGui(const string& input_file) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-    GLFWwindow* window = glfwCreateWindow(1400, 900, "Rust Language Parser - GUI", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1400, 900, "Rust Language Compiler - GUI (Lex → Parse → Semantic → IR → ASM)", nullptr, nullptr);
     if (!window) {
         log(LogLevel::ERROR, "Window creation failed");
         glfwTerminate();
@@ -523,6 +615,14 @@ void runGui(const string& input_file) {
             ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "[OK] Lexical analysis succeeded (%zu tokens)", g_state.tokens.size());
         } else if (!g_state.lex_error.empty()) {
             ImGui::TextColored(ImVec4(0.8f, 0.2f, 0.2f, 1.0f), "[ERR] %s", g_state.lex_error.c_str());
+        }
+
+        ImGui::SameLine();
+
+        if (g_state.semantic_success) {
+            ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "[OK] Semantic + IR + ASM generated");
+        } else if (!g_state.semantic_errors.empty()) {
+            ImGui::TextColored(ImVec4(0.8f, 0.2f, 0.2f, 1.0f), "[ERR] Semantic errors found");
         }
 
         ImGui::End();

@@ -1,0 +1,47 @@
+name: Build Windows GUI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq flex g++ cmake make mingw-w64
+
+      - name: Install vcpkg + glfw3
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg --depth 1
+          /opt/vcpkg/bootstrap-vcpkg.sh
+          /opt/vcpkg/vcpkg install glfw3:x64-mingw-static
+          echo "VCPKG_ROOT=/opt/vcpkg" >> $GITHUB_ENV
+
+      - name: Generate lexer
+        run: cd parser/src && flex -o lex.yy.cpp lexer.l
+
+      - name: Build Windows exe
+        run: |
+          cd parser
+          mkdir -p build-win && cd build-win
+          cmake .. \
+            -DCMAKE_SYSTEM_NAME=Windows \
+            -DCMAKE_SYSTEM_PROCESSOR=x86_64 \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+            -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres \
+            -DCMAKE_FIND_ROOT_PATH=/usr/x86_64-w64-mingw32 \
+            -DBUILD_WINDOWS=ON
+          make -j$(nproc)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser_windows
+          path: parser/build-win/bin/parser.exe
